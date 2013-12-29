@@ -1,0 +1,11 @@
+"AddonInfo"
+{
+	"name"				"LibK"
+	"version"			"1"
+	"up_date"			"00/00/00"
+	"author_name"			"Kamshak"
+	"author_email"			"contact.me@steam"
+	"author_url"			"http://steamcommunity.com/id/kamshak"
+	"info"				"Set of utility funcitons, ORM/database library. Do not modify or redistribute without written consent of the author"
+	"override"			"0"
+}
