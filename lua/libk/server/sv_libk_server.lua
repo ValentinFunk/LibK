@@ -10,6 +10,7 @@ resource.AddFile( "resource/fonts/CAMBRIA.TTC" )
 	pluginName is a unique identifier for the plugin
 	pluginTable is a table that contains all models the plugin uses
 	sqlInfo is an optional table containing a sql configuration overwrites the default libK configuration
+    it is not recomended that you use sqlInfo, it breaks constraints if you want to use LibK.Player(kPlayer)
 */
 function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo )
 	sqlInfo = sqlInfo or LibK.SQL --Fall back to LibK DB if plugin doesnt want a seperate connection

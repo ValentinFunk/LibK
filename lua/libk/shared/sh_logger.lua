@@ -12,7 +12,11 @@ function KLog( intLogLevel, strMessage, ... )
 			Color( 255, 255, 0 ),
 			Color( 150, 150, 150 ),
 		}
-		MsgC( colors[intLogLevel], strMessage .. "\n" )
+		if SERVER then
+			MsgN( strMessage )
+		else
+			MsgC( colors[intLogLevel], strMessage .. "\n" )
+		end
 	end
 	if( intLogLevel <= LibK.LogLevel ) then
 		if SERVER then
@@ -29,5 +33,12 @@ function KLog( intLogLevel, strMessage, ... )
 end
 
 function KLogf( intLogLevel, strMessage, ... )
-	KLog( intLogLevel, string.format( strMessage, ... ) )
+	local args = { ... }
+	--If function is called without a number, assume debug
+	if type( intLogLevel ) == "string" then
+		table.insert( args, 1, strMessage )
+		strMessage = intLogLevel
+		intLogLevel = 4
+	end
+	KLog( intLogLevel, string.format( strMessage, unpack( args ) ) )
 end

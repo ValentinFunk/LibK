@@ -120,3 +120,20 @@ function dpt( tbl )
 	print( "Printing Table from " .. dbginfo.name .. " at " .. dbginfo.short_src .. ":" .. dbginfo.currentline .. " :" )
 	PrintTable( tbl )
 end
+
+function LibK.consoleHeader( width, fillSymbol, text )
+	local spaceToFill = width - #text
+	spaceToFill = spaceToFill > 0 and spaceToFill or 0
+
+	local filler = string.rep( fillSymbol, math.floor( ( spaceToFill - 2 ) / 2 ) )
+	
+	local result = filler
+	if spaceToFill % 2 != 0 then
+		result = result .. " " .. text .. "  "
+	else
+		result = result .. " " .. text .. " "
+	end
+	result = result .. filler
+	
+	return result
+end
