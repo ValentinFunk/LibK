@@ -15,5 +15,6 @@ surface.CreateFont( "LibKHeading", {
 
 surface.CreateFont( "LibKLarge", {
 	font ="Segoe UI Light", 
-	size = 42
+	size = 42,
+	weight = 300
 } )
