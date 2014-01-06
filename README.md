@@ -80,10 +80,10 @@ youraddon_init.lua:
 ```lua
 --Example:
 LibK.InitializeAddon{
-	name = "YourAddon",                        --Name of the addon
-	author = "Kamshak",                        --Name of the author
-	luaroot = "youraddon",                     --Folder that contains the client/shared/server structure relative to the                                               --lua folder
-	reloadFile = "autorun/youraddon_init.lua", --Path of this file relative to the lua folder
+	addonName = "YourAddon",                  --Name of the addon
+	author = "Kamshak",                       --Name of the author
+	luaroot = "youraddon",                    --Folder that contains the client/shared/server structure relative to the                                               --lua folder
+	reloadFile = "autorun/youraddon_init.lua",--Path of this file relative to the lua folder
 }
 ```
 
