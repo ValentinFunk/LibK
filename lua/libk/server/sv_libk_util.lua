@@ -3,7 +3,7 @@ function LibK.addContentFolder( path )
 	for k, v in pairs( files ) do
 		resource.AddFile( path .. "/" .. v )
 		if LibK.Debug then
-			print( "[LibK] Resource Added " .. path .. "/" .. v )
+			--print( "[LibK] Resource Added " .. path .. "/" .. v )
 		end
 	end
 	

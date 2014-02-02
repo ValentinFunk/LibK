@@ -478,7 +478,8 @@ function DatabaseModel.prepareForSQL( db, fieldtype, value )
 		if DATABASES[db].CONNECTED_TO_MYSQL then
 			return string.format( "FROM_UNIXTIME( %i )", value or 0 )
 		else
-			return string.format( "strftime('%s', %i)", value or 0 )
+			print( "Time Field: ", value )
+			return string.format( "datetime( %i, 'unixepoch')", value or 0 )
 		end
 	elseif fieldtype == "id" then
 		return escape( db, value )

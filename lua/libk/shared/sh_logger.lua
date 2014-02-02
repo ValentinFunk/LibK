@@ -40,5 +40,10 @@ function KLogf( intLogLevel, strMessage, ... )
 		strMessage = intLogLevel
 		intLogLevel = 4
 	end
-	KLog( intLogLevel, string.format( strMessage, unpack( args ) ) )
+	local result, msg = pcall( string.format, strMessage, unpack( args ) )
+	if result then
+		KLog( intLogLevel, msg )
+	else
+		error( msg, 2 )
+	end
 end

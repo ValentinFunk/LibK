@@ -1,5 +1,5 @@
 LibK = {}
 
 LibK.Debug = true
-LibK.LogLevel = 2 --Requires Debug
+LibK.LogLevel = 4 --Requires Debug
 LibK.LogSQL = false
