@@ -32,7 +32,7 @@ function LibK.monitorNameChanges( )
 	for k, v in pairs( player.GetAll( ) ) do
 		if v:Nick( ) != v.libk_originalNick and v.dbPlayer then
 			KLogf( 4, "[LibK] Player %s changed name to %s", v.libk_originalNick, v:Nick( ) )
-			v.dbPlayer.nname = v:Nick( )
+			v.dbPlayer.name = v:Nick( )
 			v.dbPlayer:save( )
 			:Fail( function( errid, err )
 				KLogf( 3, "[LibK] Error saving rename for %s(%i: %s)", v.libk_originalNick, errid, err )
