@@ -83,8 +83,8 @@ LibK.InitializeAddon{
 	addonName = "YourAddon",                  --Name of the addon
 	author = "Kamshak",                       --Name of the author
 	luaroot = "youraddon",                    --Folder that contains the client/shared/server structure relative to the                                               --lua folder
-	reloadFile = "autorun/youraddon_init.lua",--Path of this file relative to the lua folder
 }
+LibK.addReloadFile( "autorun/youraddon_init.lua" ) --Path to the file so it can be reloaded using the libk_reload command
 ```
 
 sh\_0\_youraddon.lua:
