@@ -11,7 +11,12 @@ end
 
 local function reloadLibKAddons( )
 	for k, file in pairs( LibK.reloadInitFiles ) do
-		CompileFile( file )()
+		local func = CompileFile( file )
+		if func then
+			func( )
+		else
+			KLogf( 3, "[WARN] Couldn't reload file %s", file )
+		end
 	end
 end
 

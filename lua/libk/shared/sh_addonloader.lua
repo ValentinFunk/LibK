@@ -1,37 +1,30 @@
 LibK.addonsLoaded = {}
 
-local function loadShared( luaroot )
-	local files = file.Find( luaroot .."/shared/*.lua", "LUA" )
-	table.sort( files )
-	if #files > 0 then
-		for _, file in pairs( files ) do
-			KLogf( 4, "  -> Loading %s", file )
-			include( luaroot .."/shared/" .. file )
-			if SERVER then
-				AddCSLuaFile( luaroot .."/shared/" .. file )
-			end
-		end
+local function addCSLua( luaroot )
+	local files, folders = file.Find( luaroot .. "/*", "LUA" )
+	for _, file in pairs( files ) do
+		AddCSLuaFile( luaroot .. "/" .. file )
+	end
+	
+	for _, folder in pairs( folders ) do
+		addCSLua( luaroot .. "/" .. folder )
 	end
 end
 
-local function loadServer( luaroot )
-	--Server modules
-	local files = file.Find( luaroot .."/server/*.lua", "LUA" )
+local function loadFolder( luaroot, spaces )
+	spaces = spaces or 4
+	local files = file.Find( luaroot .."/*.lua", "LUA" )
 	if #files > 0 then
 		for _, file in ipairs( files ) do
-			KLogf( 4, "  -> Loading %s", file )
-			include( luaroot .."/server/" .. file )
+			KLogf( 4, "%s-> Loading %s", string.rep( " ", spaces ), file )
+			include( luaroot .. "/" .. file )
 		end
 	end
-end
-
-local function loadClient( luaroot )
-	local files = file.Find( luaroot .."/client/*.lua", "LUA" )
-	if #files > 0 then
-		for _, file in ipairs( files ) do
-			KLogf( 4, "  -> Loading %s", file )
-			include( luaroot .."/client/" .. file )
-		end
+	
+	local files, folders = file.Find( luaroot .. "/*", "LUA" )
+	for _, folder in ipairs( folders ) do
+		KLogf( 4, "%s=> Loading Folder %s", string.rep( " ", spaces ), folder )
+		loadFolder( luaroot .. "/" .. folder, spaces + 2 )
 	end
 end
 
@@ -43,16 +36,16 @@ local function loadAddon( addonTable )
 	KLog( 4, LibK.consoleHeader( 80, "=", "Loading addon ".. name ) )
 	
 	KLogf( 4, "=> Loading SHARED" )
-	loadShared( luaroot )
+	loadFolder( luaroot .. "/shared" )
 	
 	if SERVER then
 		KLogf( 4, "=> Loading SERVER" )
-		loadServer( luaroot )
+		loadFolder( luaroot .. "/server" )
 	end
 	
 	if CLIENT then
 		KLogf( 4, "=> Loading CLIENT" )
-		loadClient( luaroot )
+		loadFolder( luaroot .. "/client" )
 	end
 	
 	KLog( 4, LibK.consoleHeader( 80, "=", name .. " by ".. author .. " loaded" ) .. "\n" )
@@ -62,6 +55,11 @@ function LibK.InitializeAddon( addonTable )
 	local luaroot = addonTable.luaroot
 	local name = addonTable.addonName
 	local author = addonTable.author
+	
+	if addonTable.restrictGamemodes and not table.HasValue( addonTable.restrictGamemodes, engine.ActiveGamemode( ) ) then
+		KLog( 4, LibK.consoleHeader( 80, "=", "Skipping addon " .. name .. " (incompatible with gamemode " .. engine.ActiveGamemode( ) .. " )" ) )
+		return
+	end
 	
 	table.insert( LibK.addonsLoaded, addonTable )
 
@@ -74,17 +72,9 @@ function LibK.InitializeAddon( addonTable )
 		loadAddon( addonTable )
 	end
 	
+	--AddCSLuaFile Stuff
 	if SERVER then
-		local folder = luaroot .. "/shared"
-		local files = file.Find( folder .. "/" .. "*.lua", "LUA" )
-		for _, file in ipairs( files ) do
-			AddCSLuaFile( folder .. "/" .. file )
-		end
-
-		folder = luaroot .."/client"
-		files = file.Find( folder .. "/" .. "*.lua", "LUA" )
-		for _, file in ipairs( files ) do
-			AddCSLuaFile( folder .. "/" .. file )
-		end
+		addCSLua( luaroot .. "/client" )
+		addCSLua( luaroot .. "/shared" )
 	end
 end

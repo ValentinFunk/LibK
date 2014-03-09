@@ -367,13 +367,13 @@ function DatabaseModel:included( class )
 	
 	for fieldname, fieldtype in pairs( class.static.model.fields ) do
 		local name = "findBy" .. string.upper( fieldname[1] ) .. string.sub( fieldname, 2, #fieldname )
-		class.static[name] = function( arg, extra )
-			return class.static.findDbByField( fieldname, arg, extra )
+		class.static[name] = function( value, recursive, extra )
+			return class.static.findDbByField( fieldname, value, recursive, extra )
 		end
 		
 		local name = "findAllBy" .. string.upper( fieldname[1] ) .. string.sub( fieldname, 2, #fieldname )
-		class.static[name] = function( arg, extra )
-			return class.static.findAllDbByField( fieldname, arg, extra )
+		class.static[name] = function( value, recursive, extra )
+			return class.static.findAllDbByField( fieldname, value, recursive, extra )
 		end
 	end
 end
