@@ -18,6 +18,10 @@ function LibK.getDatabaseConnection( config, name )
 
 	DB.CONNECTED_TO_MYSQL = false
 	DB.MySQLDB = nil
+	
+	function DB.SetBlocking( bBlocking )
+		DB.shouldBlock = bBlocking
+	end
 
 	local QueuedQueries
 	function DB.Begin()
@@ -96,14 +100,16 @@ function LibK.getDatabaseConnection( config, name )
 
 			query.onError = function(Q, E)
 				if (DB.MySQLDB:status() == mysqloo.DATABASE_NOT_CONNECTED) then
+					KLogf( 4, "[INFO] Connection to the database lost, reconnecting! Query %s has been queued", sqlText )
 					table.insert(DB.cachedQueries, {sqlText, callback, false})
+					DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 					return
 				end
 				
 				DB.Log("MySQL Error: ".. E)
 				ErrorNoHalt(E .. " (" .. sqlText .. ")\n")
 				if errorCallback then
-					errorCallback()
+					errorCallback( 0, "MySQL Error: " .. E )
 				end
 			end
 
@@ -111,7 +117,7 @@ function LibK.getDatabaseConnection( config, name )
 				if callback then callback(data, query:lastInsert()) end
 			end
 			query:start()
-			if blocking then
+			if blocking or DB.shouldBlock then
 				query:wait( )
 			end
 			return
@@ -120,7 +126,11 @@ function LibK.getDatabaseConnection( config, name )
 		local lastError = sql.LastError()
 		local Result = sql.Query(sqlText)
 		if sql.LastError() and sql.LastError() ~= lastError then
-			error("SQLite error: " .. sql.LastError())
+			DB.Log("MySQL Error: ".. sql.LastError())
+			ErrorNoHalt(sql.LastError() .. " (" .. sqlText .. ")\n")
+			if errorCallback then
+				return errorCallback( 0, "SQLite Error: " .. sql.LastError() )
+			end
 		end
 
 		local rowid = sql.Query("SELECT last_insert_rowid() as id")
@@ -194,7 +204,9 @@ function LibK.getDatabaseConnection( config, name )
 		databaseObject.onConnected = function()
 			DB.Log( Format( "[LibK] Connected to %s(%s@%s:%s)", name, username, host, database_port ) )
 			DB.CONNECTED_TO_MYSQL = true
-			if DB.cachedQueries then
+			DB.cachedQueries = DB.cachedQueries or {}
+			if #DB.cachedQueries > 0 then
+				KLogf( 4, "[INFO] Connection to the database %s has been reestablished, running %i queued queries", name, #DB.cachedQueries )
 				for _, v in pairs(DB.cachedQueries) do
 					if v[3] then
 						DB.QueryValue(v[1], v[2])
@@ -202,16 +214,17 @@ function LibK.getDatabaseConnection( config, name )
 						DB.Query(v[1], v[2])
 					end
 				end
+				DB.cachedQueries = {}
+				return
 			end
-			DB.cachedQueries = {}
 
 			timer.Create("libk_check_mysql_status", 60, 0, function()
-				if (DB.MySQLDB and DB.MySQLDB:status() == mysqloo.DATABASE_NOT_CONNECTED) then
-					DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
-				end
+				--if (DB.MySQLDB and DB.MySQLDB:status() == mysqloo.DATABASE_NOT_CONNECTED) then
+				--	DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
+				--end
 			end)
 			DB.IsConnected = true
-			hook.Call("LibK_DatabaseInitialized", nil, DB, name )
+			hook.Call("LibK_DatabaseInitialized", nil, DB, name )		
 		end
 		databaseObject:connect()
 		DB.MySQLDB = databaseObject
@@ -227,8 +240,8 @@ function LibK.getDatabaseConnection( config, name )
 	
 	DATABASES[name] = DB
 	if config.UseMysql then
-		DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 		KLogf( 4, "Connecting to %s@%s db: %s", config.User, config.Host, config.Database )
+		DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 	else
 		DB.IsConnected = true
 		hook.Call("LibK_DatabaseInitialized", nil, DB, name )
