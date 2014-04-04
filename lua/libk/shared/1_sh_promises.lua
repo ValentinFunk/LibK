@@ -243,8 +243,11 @@ function getPromiseState( promise )
 end
 
 --Kamshak
+--Waits for all promises to be finished, when one errors it rejects, else it returns the results in order
 function WhenAllFinished( tblPromises )
 	local def = Deferred( )
+	local results = {}
+	
 	if #tblPromises == 0 then
 		--No promises so we finished already? 
 		--TODO: evaluate if reject is better in this case
@@ -253,7 +256,14 @@ function WhenAllFinished( tblPromises )
 	end
 	
 	for k, v in pairs( tblPromises ) do
-		v:Done( function( )
+		v:Done( function( ... )
+			local args = {...}
+			if #args > 1 then
+				results[k] = args
+			else
+				results[k] = args[1]
+			end
+			
 			if def._promise._state == 'fail' or def._promise._state == 'done' then --might have errored or finished already
 				return
 			end
@@ -265,7 +275,7 @@ function WhenAllFinished( tblPromises )
 				end
 			end
 			if allDone then
-				def:Resolve( )
+				def:Resolve( unpack( results ) )
 			end
 		end )
 		v:Fail( function( ... )
