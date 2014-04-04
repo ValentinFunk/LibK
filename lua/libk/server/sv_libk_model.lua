@@ -348,6 +348,17 @@ function DatabaseModel:included( class )
 		return DATABASES[class.static.DB].DoQuery( "DROP TABLE `" .. class.static.model.tableName .. "`" ) 
 	end
 	
+	function class.static.truncateTable( )
+		if DATABASES[class.static.DB].CONNECTED_TO_MYSQL then
+			return DATABASES[class.static.DB].DoQuery( "TRUNCATE TABLE `" .. class.static.model.tableName .. "`" ) 
+		else
+			--In SQLite we drop the table and recreate it. Not as nice but best we can do
+			return class.static.dropTable( ):Then( function( ) 
+				return class:initializeTable( )
+			end )
+		end
+	end
+	
 	function class.static.findDbByField( field, value, recursive, extra ) 
 		if not value then 
 			error( "Invalid argument #2 to " .. class.name .. ":findAllDbByField( field, value ), value expected, got nil", 2 )
