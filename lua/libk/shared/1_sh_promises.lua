@@ -255,6 +255,8 @@ function WhenAllFinished( tblPromises )
 		return def:Promise( )
 	end
 	
+	--Add result fetching Done funcs first
+	--to make sure that instant returning promises are fetched correctly
 	for k, v in pairs( tblPromises ) do
 		v:Done( function( ... )
 			local args = {...}
@@ -263,7 +265,11 @@ function WhenAllFinished( tblPromises )
 			else
 				results[k] = args[1]
 			end
-			
+		end )
+	end
+	
+	for k, v in pairs( tblPromises ) do
+		v:Done( function( )
 			if def._promise._state == 'fail' or def._promise._state == 'done' then --might have errored or finished already
 				return
 			end
