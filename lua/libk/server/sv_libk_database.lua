@@ -105,6 +105,11 @@ function LibK.getDatabaseConnection( config, name )
 					DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 					return
 				end
+				if DB.MySQLDB:status() == mysqloo.DATABASE_CONNECTING then
+					KLogf( 4, "[INFO] Database is reconnecting! Query %s has been queued", sqlText )
+					table.insert(DB.cachedQueries, {sqlText, callback, false})
+					return
+				end
 				
 				DB.Log("MySQL Error: ".. E)
 				ErrorNoHalt(E .. " (" .. sqlText .. ")\n")
