@@ -122,9 +122,33 @@ function DatabaseModel:included( class )
 		return class.static.getDbEntries( string.format( " WHERE `%s`.`%s` = %s",
 			model.tableName,
 			field, 
-			DatabaseModel.prepareForSQL( class.DB, model.fields[field], value ),
-			extra
+			DatabaseModel.prepareForSQL( class.DB, model.fields[field], value )
 		), recursive, extra )
+	end
+	
+	function class.static.findWhere( tbl, recursive )
+		local model = class.static.model
+		
+		local whereClause = "WHERE "
+		local numItems = table.Count( tbl )
+		local added = 0
+		for field, value in pairs( tbl ) do
+			if not model.fields[field] then
+				error( 1, "Invalid field " .. field .. " passed to " .. class.name .. ".findWhere" )
+			end
+			
+			whereClause = whereClause .. string.format( "`%s`.`%s` = %s", 
+				model.tableName,
+				field, 
+				DatabaseModel.prepareForSQL( class.DB, model.fields[field], value )
+			)
+			
+			added = added + 1
+			if numItems > added then
+				whereClause = whereClause .. " AND "
+			end
+		end
+		return class.static.getDbEntries( whereClause, recursive )
 	end
 	
 	function class.static.getDbEntries( whereQuery, recursive, extra )
@@ -217,9 +241,13 @@ function DatabaseModel:included( class )
 					
 					--Check for override class
 					for fieldname, fieldtype in pairs( targetClassModel.fields ) do
+						if not row[relName .. "." .. fieldname] then
+							continue
+						end
 						if fieldtype == "classname" then
-							constructor = getClass( row[fieldname] )
+							constructor = getClass( row[relName .. "." .. fieldname] )
 							if not constructor then 
+								PrintTable( row )
 								error( "Invalid class " .. row[fieldname] .. " for " .. class.name .. " id " .. row.id )
 							end
 						end
