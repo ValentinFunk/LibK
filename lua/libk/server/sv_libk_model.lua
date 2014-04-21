@@ -476,7 +476,7 @@ function DatabaseModel:loadFieldFromDb( fieldname, data )
 	elseif fieldtype == "time" then
 		self[fieldname] = tonumber( data )
 	elseif fieldtype == "id" then
-		self[fieldname] = data
+		self[fieldname] = tonumber( data )
 	elseif fieldtype == "createdTime" then
 		self[fieldname] = data
 	elseif fieldtype == "text" then
