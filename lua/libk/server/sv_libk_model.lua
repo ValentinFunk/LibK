@@ -272,6 +272,9 @@ function DatabaseModel:included( class )
 					end
 					if obj then
 						instance[relName] = obj
+						if obj.postLoad then
+							table.insert( relationshipPromises, obj:postLoad( ) )
+						end
 					end
 				end
 				
