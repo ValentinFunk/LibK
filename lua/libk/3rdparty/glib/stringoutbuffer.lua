@@ -47,21 +47,6 @@ function self:UInt64 (n)
 	self.Data [#self.Data + 1] = string.char (math.floor (n / 72057594037927936) % 256)
 end
 
-function self:ULEB128 (n)
-	if n ~= n then n = 0 end
-	if n < 0 then n = -n end
-	if n >= 4294967296 then n = 4294967295 end
-	
-	while n > 0 do
-		if n >= 0x80 then
-			self:UInt8 (0x80 + bit.band (n, 0x7F))
-			n = math.floor (n / 0x80)
-		else
-			self:UInt8 (bit.band (n, 0x7F))
-		end
-	end
-end
-
 function self:Int8 (n)
 	if n < 0 then n = n + 256 end
 	self:UInt8 (n)
@@ -83,14 +68,11 @@ function self:Int64 (n)
 end
 
 function self:Float (f)
-	local n = GLib.BitConverter.FloatToUInt32 (f)
-	self:UInt32 (n)
+	self:String (tostring (f))
 end
 
 function self:Double (f)
-	local low, high = GLib.BitConverter.DoubleToUInt32s (f)
-	self:UInt32 (low)
-	self:UInt32 (high)
+	self:String (tostring (f))
 end
 
 function self:Vector (v)
@@ -109,7 +91,6 @@ function self:Bytes (data, length)
 end
 
 function self:String (data)
-	data = data or ""
 	self:UInt16 (data:len ())
 	self.Data [#self.Data + 1] = data
 end
@@ -117,12 +98,6 @@ end
 function self:LongString (data)
 	self:UInt32 (data:len ())
 	self.Data [#self.Data + 1] = data
-end
-
-function self:StringZ (data)
-	data = data or ""
-	self.Data [#self.Data + 1] = data
-	self.Data [#self.Data + 1] = "\0"
 end
 
 function self:Boolean (b)

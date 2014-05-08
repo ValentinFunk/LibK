@@ -1,5 +1,5 @@
 local self = {}
-GLib.Containers.NetworkableList = GLib.MakeConstructor (self, GLib.Networking.NetworkableContainer)
+GLib.Containers.NetworkableList = GLib.MakeConstructor (self, GLib.NetworkableContainer)
 GLib.RegisterSerializable ("GLib.Containers.NetworkableList", GLib.Containers.NetworkableList)
 
 --[[

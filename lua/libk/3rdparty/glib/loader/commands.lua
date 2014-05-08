@@ -4,7 +4,7 @@ for _, executionTarget in ipairs (executionTargets) do
 	concommand.Add ("glib_download_pack_" .. executionTarget,
 		function (ply, _, args)
 			if not ply or not ply:IsValid () then return end
-			if SERVER and not ply:IsSuperAdmin () then return end
+			if not ply:IsSuperAdmin () then return end
 			if #args == 0 then return end
 			args = table.concat (args)
 			if args == "" then return end

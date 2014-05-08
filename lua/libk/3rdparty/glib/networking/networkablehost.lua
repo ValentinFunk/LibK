@@ -1,5 +1,5 @@
 local self = {}
-GLib.Networking.NetworkableHost = GLib.MakeConstructor (self)
+GLib.NetworkableHost = GLib.MakeConstructor (self)
 
 function self:ctor ()
 	self.Networkables = {}
@@ -23,7 +23,7 @@ end
 function self:HookNetworkable (networkable, id)
 	if not networkable then return end
 	
-	networkable:AddEventListener ("NetworkMessage", self:GetHashCode (),
+	networkable:AddEventListener ("NetworkMessage", tostring (self),
 		function (_, sourceNetworkable, subscriberSet, addressBuffer, outBuffer)
 			outBuffer:PrependString (addressBuffer:GetString ())
 			GLib.Net.DispatchPacket (subscriberSet or "Everyone", id, outBuffer)
@@ -43,5 +43,5 @@ end
 function self:UnhookNetworkable (networkable, id)
 	if not networkable then return end
 	
-	networkable:RemoveEventListener ("NetworkMessage", self:GetHashCode ())
+	networkable:RemoveEventListener ("NetworkMessage", tostring (self))
 end
