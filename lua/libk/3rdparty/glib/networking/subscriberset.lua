@@ -1,5 +1,5 @@
 local self = {}
-GLib.SubscriberSet = GLib.MakeConstructor (self)
+GLib.Networking.SubscriberSet = GLib.MakeConstructor (self)
 
 --[[
 	Cleared ()

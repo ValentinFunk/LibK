@@ -2,23 +2,38 @@ local self = {}
 GLib.Containers.List = GLib.MakeConstructor (self)
 
 function self:ctor ()
-	self.Items = {}
 	self.Count = 0
+	
+	self.Items = {}
 end
 
 function self:Add (item)
 	self.Count = self.Count + 1
 	self.Items [self.Count] = item
+	
 	return self
 end
 
 function self:Clear ()
-	self.Items = {}
 	self.Count = 0
+	
+	self.Items = {}
 end
 
 function self:Contains (item)
 	return self:IndexOf (item) ~= nil
+end
+
+function self:Filter (filter)
+	local filteredList = GLib.Containers.List ()
+	
+	for i = 1, self.Count do
+		if filter (self.Items [i]) then
+			filteredList:Add (self.Items [i])
+		end
+	end
+	
+	return filteredList
 end
 
 function self:Get (index)

@@ -40,6 +40,9 @@ function GLib.Resources.Get (namespace, id, versionHashOrCallback, callback)
 			print ("GLib.Resources : Using cached resource " .. namespace .. "/" .. id .. " (" .. versionHash .. ").")
 			resource:SetLocalPath ("data/" .. GLib.Resources.ResourceCache:GetCachePath (namespace, id, versionHash))
 			resource:SetState (GLib.Resources.ResourceState.Available)
+			
+			GLib.Resources.ResourceCache:UpdateLastAccessTime (namespace, id, versionHash)
+			
 			callback (true, resource:GetData ())
 			return
 		end

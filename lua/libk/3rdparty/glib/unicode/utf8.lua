@@ -18,6 +18,7 @@ function GLib.UTF8.Byte (char, offset)
 	local byte = string_byte (char, offset)
 	local length = 1
 	if byte >= 128 then
+		-- multi-byte sequence
 		if byte >= 240 then
 			-- 4 byte sequence
 			length = 4
@@ -40,9 +41,12 @@ function GLib.UTF8.Byte (char, offset)
 			byte = (byte % 32) * 64
 			byte = byte + (string_byte (char, offset + 1) % 64)
 		else
+			-- this is a continuation byte
 			-- invalid sequence
 			byte = -1
 		end
+	else
+		-- single byte sequence
 	end
 	return byte, length
 end

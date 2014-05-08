@@ -1,6 +1,8 @@
 GLib.Loader = {}
 GLib.Loader.File = {}
 
+local CompileString = CompileString
+
 for k, v in pairs (file) do
 	GLib.Loader.File [k] = v
 end
@@ -139,7 +141,7 @@ function GLib.Loader.Include (path)
 		code, compiled = GLib.Loader.File.Read (path, "LUA")
 	end
 	if not code and not compiled then
-		ErrorNoHalt ("GLib.Loader.Include : " .. path .. ": File not found (Path was " .. pathStack [#pathStack] .. ", caller path was " .. callerDirectory .. ").\n")
+		GLib.Error ("GLib.Loader.Include : " .. path .. ": File not found (Path was " .. pathStack [#pathStack] .. ", caller path was " .. callerDirectory .. ").\n")
 	else
 		compiled = compiled or GLib.Loader.CompileString (code, "lua/" .. fullPath, false)
 		if type (compiled) == "function" then
@@ -398,6 +400,10 @@ elseif CLIENT then
 				
 				GLib.Resources.Get ("LuaPack", packFileEntries [i].ResourceId, packFileEntries [i].VersionHash,
 					function (success, data)
+						if not success then
+							GLib.Error ("GLib.Loader : Failed to get resource " .. packFileEntries [i].ResourceId .. " (" .. packFileEntries [i].VersionHash .. ").")
+						end
+						
 						packFileEntries [i].Data = data
 						
 						i = i + 1
@@ -417,14 +423,20 @@ elseif CLIENT then
 				local startTime = SysTime ()
 				local packFileEntry = packFileEntries [i]
 				local packFileSystem = packFileEntries [i].PackFileSystem
-				packFileSystem:Deserialize (packFileEntries [i].Data, false,
-					function ()
-						packFileEntry.DeserializationDuration = SysTime () - startTime
-						
-						i = i + 1
-						deserializeNextPackFile ()
-					end
-				)
+				
+				if packFileEntries [i].Data then
+					packFileSystem:Deserialize (packFileEntries [i].Data, false,
+						function ()
+							packFileEntry.DeserializationDuration = SysTime () - startTime
+							
+							i = i + 1
+							deserializeNextPackFile ()
+						end
+					)
+				else
+					i = i + 1
+					deserializeNextPackFile ()
+				end
 			end
 			
 			function runNextPackFile ()
@@ -452,7 +464,7 @@ elseif CLIENT then
 	
 	GLib.WaitForLocalPlayer (
 		function ()
-			timer.Simple (10,
+			timer.Simple (5,
 				function ()
 					RunConsoleCommand ("glib_request_pack")
 				end

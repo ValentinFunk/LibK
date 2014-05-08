@@ -13,6 +13,16 @@ function self:ctor ()
 		end
 	)
 	
+	concommand.Add ("glib_flush_resource_cache_" .. (SERVER and "sv" or "cl"),
+		function (ply, _, args)
+			if SERVER then
+				if ply and ply:IsValid () and not ply:IsAdmin () then return end
+			end
+			
+			self:ClearCache ()
+		end
+	)
+	
 	concommand.Add ("glib_prune_resource_cache_" .. (SERVER and "sv" or "cl"),
 		function (ply, _, args)
 			if SERVER then
@@ -39,6 +49,21 @@ function self:CacheResource (namespace, id, versionHash, data)
 	f:Close ()
 	
 	self:UpdateLastAccessTime (namespace, id, versionHash)
+end
+
+function self:ClearCache ()
+	local _, folders = file.Find ("data/glib/resourcecache/*", "GAME")
+	
+	for _, folderName in ipairs (folders) do
+		local files = file.Find ("data/glib/resourcecache/" .. folderName .. "/*", "GAME")
+		for _, fileName in ipairs (files) do
+			self.LastAccessTimes ["glib/resourcecache/" .. folderName .. "/" .. fileName] = nil
+			self:FlagSaveNeeded ()
+			
+			file.Delete ("glib/resourcecache/" .. folderName .. "/" .. fileName)
+			print ("GLib.Resources : Flushing cached resource glib/resourcecache/" .. folderName .. "/" .. fileName .. "...")
+		end
+	end
 end
 
 function self:GetCachePath (namespace, id, versionHash)

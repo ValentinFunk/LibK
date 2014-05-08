@@ -1,5 +1,5 @@
 local self = {}
-GLib.NetworkableContainer = GLib.MakeConstructor (self, GLib.Networkable)
+GLib.Networking.NetworkableContainer = GLib.MakeConstructor (self, GLib.Networkable)
 
 function self:ctor ()
 end
@@ -61,7 +61,7 @@ function self:HookNetworkable (childNetworkable)
 	if not childNetworkable then return end
 	if type (childNetworkable) ~= "table" then return end
 	
-	childNetworkable:AddEventListener ("NetworkMessage", tostring (self),
+	childNetworkable:AddEventListener ("NetworkMessage", self:GetHashCode (),
 		function (_, sourceNetworkable, subscriberSet, addressBuffer, outBuffer)
 			self:NetworkChildMessage (childNetworkable, sourceNetworkable, subscriberSet, addressBuffer, outBuffer)
 		end
@@ -72,5 +72,5 @@ function self:UnhookNetworkable (childNetworkable)
 	if not childNetworkable then return end
 	if type (childNetworkable) ~= "table" then return end
 	
-	childNetworkable:RemoveEventListener ("NetworkMessage", tostring (self))
+	childNetworkable:RemoveEventListener ("NetworkMessage", self:GetHashCode ())
 end

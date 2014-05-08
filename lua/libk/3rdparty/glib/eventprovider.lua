@@ -18,6 +18,9 @@ function self:ctor (host, getParentEventProvider)
 		host.RemoveEventListener = function (host, ...)
 			return self:RemoveEventListener (...)
 		end
+		host.GetEventProvider = function (host, ...)
+			return self
+		end
 		host.SuppressEvents = function (host, ...)
 			return self:SuppressEvents (...)
 		end
@@ -34,6 +37,21 @@ function self:AddEventListener (eventName, nameOrCallback, callback)
 		self.EventListeners [eventName] = {}
 	end
 	self.EventListeners [eventName] [nameOrCallback] = callback
+end
+
+function self:Clone (eventProvider)
+	eventProvider = eventProvider or GLib.EventProvider ()
+	eventProvider = eventProvider:GetEventProvider ()
+	
+	for eventName, eventListeners in pairs (self.EventListeners) do
+		eventProvider.EventListeners [eventName] = eventProvider.EventListeners [eventName] or {}
+		
+		for callbackName, callback in pairs (eventListeners) do
+			eventProvider.EventListeners [eventName] [callbackName] = callback
+		end
+	end
+	
+	return eventProvider
 end
 
 function self:DispatchEvent (eventName, ...)
@@ -68,6 +86,10 @@ function self:DispatchEvent (eventName, ...)
 		end
 	end
 	return a, b, c
+end
+
+function self:GetEventProvider ()
+	return self
 end
 
 function self:RemoveEventListener (eventName, nameOrCallback)

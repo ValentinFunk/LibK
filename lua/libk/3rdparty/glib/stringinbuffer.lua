@@ -66,6 +66,26 @@ function self:UInt64 ()
 	return n
 end
 
+function self:ULEB128 ()
+	local n = 0
+	local factor = 1
+	
+	local done = false
+	repeat
+		local byte = self:UInt8 ()
+		if byte >= 0x80 then
+			byte = byte - 0x80
+		else
+			done = true
+		end
+		
+		n = n + byte * factor
+		factor = factor * 128
+	until done
+	
+	return n
+end
+
 function self:Int8 ()
 	local n = self:UInt8 ()
 	if n >= 128 then n = n - 256 end
@@ -92,29 +112,13 @@ end
 
 function self:Float ()
 	local n = self:UInt32 ()
-	local negative = false
-	
-	if n >= 0x80000000 then
-		negative = true
-		n = n - 0x80000000
-	end
-	
-	local exponent = bit.rshift (bit.band (n, 0x7F800000), 23)
-	local mantissa = bit.band (n, 0x007FFFFF) / (2 ^ 23)
-	
-	if mantissa == 0 and exponent == 0 then
-		n = 0
-	elseif exponent == 255 then
-		n = math.huge
-	else
-		n = math.ldexp (1 + mantissa, exponent - 127)
-	end
-	
-	return negative and -n or n
+	return GLib.BitConverter.UInt32ToFloat (n)
 end
 
 function self:Double ()
-	return tonumber (self:String ()) or 0
+	local low = self:UInt32 ()
+	local high = self:UInt32 ()
+	return GLib.BitConverter.UInt32sToDouble (low, high)
 end
 
 function self:Vector ()
@@ -147,6 +151,17 @@ function self:LongString ()
 	local length = self:UInt32 ()
 	local str = self.Data:sub (self.Position, self.Position + length - 1)
 	self.Position = self.Position + length
+	return str
+end
+
+function self:StringZ ()
+	local str = ""
+	local c = self:Char ()
+	while c and c ~= "" and c ~= "\0" do
+		str = str .. c
+		c = self:Char ()
+	end
+	
 	return str
 end
 

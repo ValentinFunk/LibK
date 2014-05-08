@@ -161,7 +161,7 @@ end
 
 function GLib.Error (message)
 	message = tostring (message)
-	ErrorNoHalt (" \n\t" .. message .. "\n\t\t" .. GLib.StackTrace (nil, 2):gsub ("\n", "\n\t\t") .. "\n")
+	ErrorNoHalt (" \n\t" .. message .. "\n\t\t" .. GLib.StackTrace (nil, 1):gsub ("\n", "\n\t\t") .. "\n")
 end
 
 function GLib.FindUpValue (func, name)
@@ -172,11 +172,6 @@ function GLib.FindUpValue (func, name)
 		if a == name then return b end
 		i = i + 1
 	end
-end
-
-function GLib.FormatDate (date)
-	local dateTable = os.date ("*t", date)
-	return string.format ("%02d/%02d/%04d %02d:%02d:%02d", dateTable.day, dateTable.month, dateTable.year, dateTable.hour, dateTable.min, dateTable.sec)
 end
 
 local timeUnits = { "ns", "µs", "ms", "s", "ks", "Ms", "Gs", "Ts", "Ps", "Es", "Zs", "Ys" }
@@ -201,11 +196,6 @@ function GLib.FormatFileSize (size)
 	return tostring (math.floor (size * 100 + 0.5) / 100) .. " " .. sizeUnits [unitIndex]
 end
 
-function GLib.GetMetaTable (constructor)
-	local name, basetable = debug.getupvalue (constructor, 1)
-	return basetable
-end
-
 function GLib.GetStackDepth ()
 	local i = 0
 	while debug.getinfo (i) do
@@ -220,12 +210,23 @@ function GLib.Initialize (systemName, systemTable)
 	end
 	
 	setmetatable (systemTable, getmetatable (systemTable) or {})
-	getmetatable (systemTable).__index = GLib
-	
-	for k, v in pairs (GLib) do
-		if type (v) == "table" then
-			systemTable [k] = {}
-			setmetatable (systemTable [k], { __index = v })
+	if systemTable ~= GLib then
+		getmetatable (systemTable).__index = GLib
+		
+		for k, v in pairs (GLib) do
+			if type (v) == "table" then
+				-- Object static tables
+				local metatable = debug.getmetatable (v)
+				local ictorInvoker = metatable and metatable.__call or nil
+				
+				systemTable [k] = {}
+				setmetatable (systemTable [k],
+					{
+						__index = v,
+						__call = ictorInvoker
+					}
+				)
+			end
 		end
 	end
 	
@@ -257,8 +258,14 @@ function GLib.IncludeDirectory (folder, recursive)
 	if SERVER then paths [#paths + 1] = "LSV" end
 	if CLIENT and GetConVar ("sv_allowcslua"):GetBool () then paths [#paths + 1] = "LCL" end
 	
+	local folderListList = recursive and {} or nil
+	
 	for _, path in ipairs (paths) do
 		local files, folders = GLib.Loader.Find (folder .. "/*", path)
+		if recursive then
+			folderListList [#folderListList + 1] = folders
+		end
+		
 		for _, file in ipairs (files) do
 			if string.lower (string.sub (file, -4)) == ".lua" and
 			   not included [string.lower (file)] then
@@ -266,7 +273,9 @@ function GLib.IncludeDirectory (folder, recursive)
 				included [string.lower (file)] = true
 			end
 		end
-		if recursive then
+	end
+	if recursive then
+		for _, folders in ipairs (folderListList) do
 			for _, childFolder in ipairs (folders) do
 				if childFolder ~= "." and childFolder ~= ".." and
 				   not included [string.lower (childFolder)] then
@@ -285,68 +294,6 @@ function GLib.InvertTable (tbl)
 	end
 	for i = 1, #keys do
 		tbl [tbl [keys [i]]] = keys [i]
-	end
-end
-
---[[
-	GLib.MakeConstructor (metatable, base, base2)
-		Returns: () -> Object
-		
-		Produces a constructor for the object defined by metatable.
-		base may be nil or the constructor of a base class.
-		base2 may be nil or the constructor of another base class.
-		The second base class must not be a class with inheritance.
-]]
-function GLib.MakeConstructor (metatable, base, base2)
-	metatable.__index = metatable
-	
-	if base then
-		local basetable = GLib.GetMetaTable (base)
-		metatable.__base = basetable
-		setmetatable (metatable, basetable)
-		
-		if base2 then
-			local base2table = base2
-			if type (base2) == "function" then base2table = GLib.GetMetaTable (base2) end
-			for k, v in pairs (base2table) do
-				if k:sub (1, 2) ~= "__" then metatable [k] = v end
-			end
-			metatable.__base2 = base2table
-			metatable.ctor2 = base2table.ctor
-		end
-	end
-	
-	return function (...)
-		local object = {}
-		setmetatable (object, metatable)
-		
-		-- Create constructor and destructor
-		if not rawget (metatable, "__ctor") or not rawget (metatable, "__dtor") then
-			local base = metatable
-			local ctors = {}
-			local dtors = {}
-			while base ~= nil do
-				ctors [#ctors + 1] = rawget (base, "ctor")
-				ctors [#ctors + 1] = rawget (base, "ctor2")
-				dtors [#dtors + 1] = rawget (base, "dtor")
-				base = base.__base
-			end
-			
-			function metatable:__ctor (...)
-				for i = #ctors, 1, -1 do
-					ctors [i] (self, ...)
-				end
-			end
-			function metatable:__dtor (...)
-				for i = 1, #dtors do
-					dtors [i] (self, ...)
-				end
-			end
-		end
-		
-		object.dtor = object.__dtor
-		object:__ctor (...)
-		return object
 	end
 end
 
@@ -378,10 +325,10 @@ function GLib.PrintStackTrace ()
 	ErrorNoHalt (GLib.StackTrace (nil, 2))
 end
 
-function GLib.StackTrace (levels, offset)
+function GLib.StackTrace (levels, frameOffset)
 	local stringBuilder = GLib.StringBuilder ()
 	
-	local offset = offset or 1
+	local frameOffset = frameOffset or 1
 	local exit = false
 	local i = 0
 	local shown = 0
@@ -393,7 +340,7 @@ function GLib.StackTrace (levels, offset)
 			local name = t.name
 			local src = t.short_src
 			src = src or "<unknown>"
-			if i >= offset then
+			if i >= frameOffset then
 				shown = shown + 1
 				if name then
 					stringBuilder:Append (string.format ("%2d", i) .. ": " .. name .. " (" .. src .. ": " .. tostring (t.currentline) .. ")\n")
@@ -458,11 +405,16 @@ function GLib.WeakValueTable ()
 	return tbl
 end
 
-include ("string.lua")
+-- GLib.Initialize uses this code
+include ("oop.lua")
 include ("timers.lua")
+include ("eventprovider.lua")
+GLib.Initialize ("GLib", GLib)
+
+-- Now load the rest
+include ("string.lua")
 
 include ("userid.lua")
-include ("eventprovider.lua")
 include ("playermonitor.lua")
 include ("stringbuilder.lua")
 include ("stringinbuffer.lua")
@@ -482,13 +434,12 @@ include ("loader/packfilesystem.lua")
 include ("loader/packfilemanager.lua")
 include ("loader/commands.lua")
 
-include ("addons.lua")
-
 -- This has to be done after the Loader library is loaded,
 -- since GLib.EnumerateFolder calls GLib.Loader.Find.
 GLib.AddCSLuaFile ("glib/glib.lua")
 GLib.AddCSLuaFile ("glib/stage1.lua")
 GLib.AddCSLuaFile ("glib/string.lua")
+GLib.AddCSLuaFile ("glib/oop.lua")
 GLib.AddCSLuaFile ("glib/timers.lua")
 GLib.AddCSLuaFile ("glib/userid.lua")
 GLib.AddCSLuaFile ("glib/eventprovider.lua")
