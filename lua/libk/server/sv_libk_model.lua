@@ -434,7 +434,8 @@ function DatabaseModel.generateSQLForType( fieldtype, options )
 		createdTime = "TIMESTAMP NULL",
 		updatedTime = "TIMESTAMP NULL",
 		time = "TIMESTAMP NULL",
-		text = "MEDIUMTEXT NULL"
+		text = "TEXT NULL",
+		luadata = "TEXT NULL"
 	}
 	
 	--No AUTO_INCREMENT in SQLite
@@ -462,6 +463,9 @@ function DatabaseModel:loadFieldFromDb( fieldname, data )
 				self[k] = v
 			end
 		end
+	elseif fieldtype == "luadata" then
+		local data = LibK.luadata.Decode( data )
+		self[fieldname] = data
 	elseif fieldtype == "bool" then
 		self[fieldname] = ( data == 0 ) and false or true
 	elseif fieldtype == "int" then
@@ -496,10 +500,12 @@ function DatabaseModel.prepareForSQL( db, fieldtype, value )
 		return escape( db, value )
 	elseif fieldtype == "int" then
 		return escape( db, tonumber( value ) )
+	elseif fieldtype == "luadata" then
+		return escape( db, LibK.luadata.Encode( value ) )
 	elseif fieldtype == "bool" then
 		return value and 1 or 0
 	elseif fieldtype == "classname" then
-		return value --Class of this instance
+		return ecape( db, value ) --Class of this instance
 	elseif fieldtype == "player" then
 		if type( value ) == "Player" then
 			return escape( db, value:SteamID( ) ) --so findByPlayer( playerObj ) works 

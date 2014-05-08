@@ -1,7 +1,7 @@
 include( "sh_util.lua" )
 
 local function isolatedInclude( filePath )
-	print( "\t -> " .. filePath )
+	KLogf( 5, "  -> " .. filePath )
 	local path = virtualLua .. "/" .. filePath
 	local alternativePath = virtualLua .. "/" .. virtualMain .. "/" .. filePath
 	local result
@@ -98,17 +98,25 @@ function LibK.createIsolatedEnvironment( tableName, virtualLua, virtualMain )
 	return env
 end
 
-function LibK.loadThirdparty( tableName, virtualLua, virtualMain, mainFile )
+function LibK.loadThirdparty( tableName, author, virtualLua, virtualMain, mainFile )
 	local env = LibK.createIsolatedEnvironment( tableName, virtualLua, virtualMain )
 	local loadFunction = function( )
 		include( mainFile )
 	end
 	setfenv( loadFunction, env )
 	
-	KLogf( 5, LibK.consoleHeader( 80, "*", "Loading thirdparty addon " .. tableName ) )
+	KLogf( 5, LibK.consoleHeader( 80, "*", "Loading " .. tableName .. " by " .. author ) )
 	loadFunction( )
 	LibK[tableName] = env[tableName]
-	KLogf( 5, LibK.consoleHeader( 80, "*", tableName .. " loading finished" ) )
+	KLogf( 5, LibK.consoleHeader( 80, "*", tableName .. " loaded" ) )
 end
 
-LibK.loadThirdparty( "GLib", "libk/3rdparty", "glib", "glib.lua" )
+--GLib created by !cake, used with permission.
+LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
+
+--luadata by CapsAdmin, "fuck copyright, do what you want with this"
+LibK.loadThirdparty( "luadata", "CapsAdmin", "libk/3rdparty", "", "luadata.lua" )
+
+--vON by Vercas et al. Usage permitted if author is credited
+LibK.loadThirdparty( "von", "Vercas", "libk/3rdparty", "", "von.lua" )
+
