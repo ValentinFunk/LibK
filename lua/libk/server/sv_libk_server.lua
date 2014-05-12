@@ -22,6 +22,7 @@ function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo )
 	hook.Add( "OnReloaded", "LibK_Initialize" .. pluginName, pluginTable.DBInitialize )
 
 	function pluginTable.initModels( )
+		local promises = {}
 		for name, class in pairs( pluginTable ) do
 			if type( class ) != "table" or not class.name then
 				continue
@@ -30,14 +31,17 @@ function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo )
 			if not class.initializeTable then 
 				continue
 			end
-			class:initializeTable( )
+			
+			local promise = class:initializeTable( )
 			:Done( function( )
 				KLogf( 4, "[%s]Initialized Model %s", pluginName, name ) 
 			end )
 			:Fail( function( errid, err )
 				KLogf( 2, "[%s]Failed to initialize Model %s(%i: %s)", pluginName, name, errid, err )
 			end )
+			table.insert( promises, promise )
 		end
+		return WhenAllFinished( promises )
 	end
 
 	hook.Add( "LibK_DatabaseInitialized", "LibKORMGenerateModeltables" .. pluginName, function( database, dbName )
@@ -46,10 +50,16 @@ function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo )
 		end
 		KLogf( 4, "[%s] Database Connected, Init Models", pluginName )
 		pluginTable.initModels( )
-		
-		if pluginTable.onDatabaseConnected then
-			pluginTable.onDatabaseConnected( )
-		end
+		:Done( function( )
+			if pluginTable.onDatabaseConnected then
+				pluginTable.onDatabaseConnected( )
+			end
+		end )
+		:Fail( function( )
+			if pluginTable.onDatabaseConnected then
+				pluginTable.onDatabaseConnected( )
+			end
+		end )
 	end )
 end
 

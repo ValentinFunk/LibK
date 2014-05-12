@@ -17,3 +17,13 @@ LibK.Player.static.model = {
 }
 
 LibK.Player:include( DatabaseModel )
+
+function LibK.Player.static.findPlayers( subject, attribute )
+	local def = Deferred( )
+	if not LibK.Player.model.fields[attribute] then
+		def:Reject( 1, "Invalid attribute " .. attribute )
+		return def:Promise( )
+	end
+	
+	return LibK.Player.getDbEntries( Format( 'WHERE %s LIKE "%%%s%%"', attribute, subject ) )
+end

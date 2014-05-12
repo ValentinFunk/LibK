@@ -8,6 +8,10 @@ local function isolatedInclude( filePath )
 	if _file.Exists( alternativePath, "LUA" ) then
 		result = CompileFile( alternativePath )
 	elseif _file.Exists( path, "LUA" ) then
+		if table.HasValue( _filesIncluded, filePath ) then
+			KLogf( 5, "  -> SKIPPED: " .. filePath )
+			return
+		end
 		result = CompileFile( path )
 	else
 		ErrorNoHalt( "Couldn't include file " .. path .. " -> " ..  alternativePath .. "\n" )
@@ -19,6 +23,8 @@ local function isolatedInclude( filePath )
 	end
 	setfenv( result, _env )
 	result( )
+	table.insert( _filesIncluded, virtualMain .. "/" .. filePath )
+	table.insert( _filesIncluded, filePath )
 end
 
 function LibK.getFileProxy( virtualLua )
@@ -78,9 +84,18 @@ function LibK.getCompileStringProxy( virtualLua, env )
 	end
 end
 
+LibK.included = {}
+local included = LibK.included
 function LibK.createIsolatedEnvironment( tableName, virtualLua, virtualMain )
+	local dependencyLookup = {}
+	setmetatable( dependencyLookup, {
+		__index = function( tbl, key )
+			return LibK[key] or _G[key]
+		end 
+	} )
+	
 	local env = {}
-	setmetatable( env, { __index = _G } ) --allow access to globals
+	setmetatable( env, { __index = dependencyLookup } ) --allow access to globals
 	LibK[tableName] = {}
 	env[tableName] = false --isolated bit
 	--redirect includes
@@ -92,6 +107,7 @@ function LibK.createIsolatedEnvironment( tableName, virtualLua, virtualMain )
 	env.AddCSLuaFile = LibK.getAddCSLuaProxy( virtualLua )
 	env.CompileString = LibK.getCompileStringProxy( virtualLua, env )
 	env.include = isolatedInclude
+	env._filesIncluded = included
 	env._env = env
 	setfenv( isolatedInclude, env )
 	env._include = include
@@ -114,9 +130,20 @@ end
 --GLib created by !cake, used with permission.
 LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
 
+--Gooey by !cake
+--LibK.loadThirdparty( "Gooey", "!cake", "libk/3rdparty", "gooey", "gooey.lua" )
+
+--GAuth by !cake
+--LibK.loadThirdparty( "GAuth", "!cake", "libk/3rdparty", "gauth", "gauth.lua" )
+
+--VFS by !cake
+--LibK.loadThirdparty( "VFS", "!cake", "libk/3rdparty", "vfs", "vfs.lua" )
+
 --luadata by CapsAdmin, "fuck copyright, do what you want with this"
 LibK.loadThirdparty( "luadata", "CapsAdmin", "libk/3rdparty", "", "luadata.lua" )
+AddCSLuaFile( "libk/3rdparty/luadata.lua" )
 
 --vON by Vercas et al. Usage permitted if author is credited
 LibK.loadThirdparty( "von", "Vercas", "libk/3rdparty", "", "von.lua" )
+AddCSLuaFile( "libk/3rdparty/von.lua" )
 

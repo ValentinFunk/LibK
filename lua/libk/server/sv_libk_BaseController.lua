@@ -36,6 +36,68 @@ function BaseController:startView( viewName, func, target,  ... )
 	net.Send( target )
 end
 
+util.AddNetworkString( "LibK_Transaction" )
+net.Receive( "LibK_Transaction", function( len, ply )
+	local transactionId = net.ReadUInt( 16 )
+	local controller = net.ReadString( )
+	local action = net.ReadString( )
+	local view = net.ReadString( )
+	local args = net.ReadTable( )
+	
+	local controllerClass = getClass(controller)
+	if not controllerClass then 
+		error( "Got action request for invalid controller " .. controller )
+	end
+	local instance = controllerClass:getInstance( )
+
+	--Debug log
+	local argStrs = {}
+	for k, v in pairs( args ) do
+		table.insert( argStrs, tostring( v ) )
+	end
+	KLogf( 4, "%s@%s -> %s:%s( %s ) | Transaction %i len %i", ply:Nick( ), view, controller, action, table.concat( argStrs, " ," ), transactionId, len )
+	
+	instance:canDoAction( ply, action )
+	:Then( function( )
+		local def = Deferred( )
+		
+		if LibK.Debug then
+			local promise = instance[action]( instance, ply, unpack( args ) )
+			if not promise or not istable( promise ) then
+				def:Reject( "Internal Server Error 403" ) --bad gateway? hmmm w/e
+				ErrorNoHalt( "Invalid transaction " .. action .. ", doesn't return a promise" )
+			else
+				--Forward promise to transaction
+				promise:Done( function( ... )
+					def:Resolve( ... )
+				end )
+				promise:Fail( function( ... )
+					def:Reject( ... )
+				end )
+			end
+		else
+			local pcallResults = { pcall( instance[action], instance, ply, unpack( args ) ) }
+			if not pcallResults[1] then
+				def:Reject( 1, "Internal Server Errror" )
+				KLogf( 1, "LUA Error in Controller " .. controller .. " action " .. action .. ":\n" )
+				KLogf( 1, pcallResults[2] )
+				debug.Trace( )
+			else
+				table.remove( pcallResults, 1 ) --Remove success bool
+				def:Resolve( unpack( pcallResults ) ) --forward args
+			end
+		end
+		
+		return def:Promise( )
+	end )
+	:Done( function( ... )
+		instance:startView( view, "transactionCompleted", ply, transactionId, true, ... )
+	end )
+	:Fail( function( ... )
+		instance:startView( view, "transactionCompleted", ply, transactionId, false, ... )
+	end )
+end )
+
 --Override for access controll
 --returns a promise, resolved if user can do it, rejected with error if he cant
 function BaseController:canDoAction( ply, action )

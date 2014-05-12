@@ -97,6 +97,38 @@ function BaseView:controllerAction( strAction, ... )
 	net.SendToServer( )
 end
 
+function BaseView:controllerTransaction( strAction, ... )
+	self.transactions = self.transactions or {}
+	
+	local def = Deferred( )
+	local transactionId = table.insert( self.transactions, def )
+	
+	net.Start( "LibK_Transaction" )
+		net.WriteUInt( transactionId, 16 )
+		net.WriteString( self.class.static.controller )
+		net.WriteString( strAction )
+		net.WriteString( self.class.name )
+		net.WriteTable( { ... } )
+	net.SendToServer( )
+
+	
+	return def:Promise( )
+end
+
+function BaseView:transactionCompleted( transactionId, success, ... )
+	local transaction = self.transactions[transactionId]
+	if not transaction then 
+		KLogf( 2, "[LibK][ERROR] Server tried to resolve invalid transaction with id %i", transactionId )
+	end
+	
+	if success then
+		transaction:Resolve( ... )
+	else
+		transaction:Reject( ... )
+	end
+	self.transactions[transactionId] = nil
+end
+
 function BaseView:displayError( errorString, errorTitle )
 	Derma_Message( errorString, errorTitle )
 end
