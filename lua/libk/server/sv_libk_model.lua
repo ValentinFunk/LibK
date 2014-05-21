@@ -686,7 +686,7 @@ function DatabaseModel:save( )
 
 			local sqlStr = table.concat( query, " " )
 			DBQuery( db, sqlStr, function( data, lastInsertId )
-				self.id = lastInsertId
+				self.id = tonumber( lastInsertId )
 				def:Resolve( self )
 			end, function( )
 				def:Reject( 0, "SQL Error" )
