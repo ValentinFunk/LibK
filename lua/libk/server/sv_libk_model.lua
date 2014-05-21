@@ -214,7 +214,7 @@ function DatabaseModel:included( class )
 					if fieldtype == "classname" then
 						constructor = getClass(row[model.tableName .. "." .. fieldname])
 						if not constructor then 
-							error( "Invalid class " .. row[model.tableName .. "." .. fieldname] .. " for " .. class.name .. " id " .. row.id )
+							error( "Invalid class " .. row[model.tableName .. "." .. fieldname] .. " for " .. class.name .. " id " .. ( row.id or "nil" ) )
 						end
 					end
 				end
@@ -229,6 +229,12 @@ function DatabaseModel:included( class )
 					if string.match( name, objPattern ) then
 						local startPos, endPos = string.find( name, objPattern )
 						local fieldName = string.sub( name, endPos + 1, #name )
+						if not DATABASES[class.DB].CONNECTED_TO_MYSQL then
+							if type(value) == "string" and value == "NULL" then
+								value = nil
+								row[name] = value
+							end
+						end
 						instance:loadFieldFromDb( fieldName, value )
 					end
 				end
@@ -244,6 +250,11 @@ function DatabaseModel:included( class )
 						if not row[relName .. "." .. fieldname] then
 							continue
 						end
+						--SQLite NULL
+						if not DATABASES[class.DB].CONNECTED_TO_MYSQL and row[relName .. "." .. fieldname] == "NULL" then
+							continue
+						end
+						
 						if fieldtype == "classname" then
 							constructor = getClass( row[relName .. "." .. fieldname] )
 							if not constructor then 
