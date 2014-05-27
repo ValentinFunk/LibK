@@ -1,4 +1,4 @@
-function LibK.addContentFolder( path )
+function LibK.addContentFolder( path, noRecurse )
 	local files, folders = file.Find( path .. "/*", "GAME" )
 	for k, v in pairs( files ) do
 		resource.AddFile( path .. "/" .. v )
@@ -7,7 +7,8 @@ function LibK.addContentFolder( path )
 		end
 	end
 	
+	if noRecurse then return end
 	for k, v in pairs( folders ) do
-		addContent( path .. "/" .. v )
+		LibK.addContentFolder( path .. "/" .. v )
 	end
 end
