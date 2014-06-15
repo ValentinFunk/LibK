@@ -578,7 +578,7 @@ function DatabaseModel:getFieldForDb( fieldname )
 			return "NULL"
 		end
 	else
-		if not self[fieldname] then
+		if self[fieldname] == nil then
 			ErrorNoHalt( "No value given for " .. self.class.name .. ", field " .. fieldname )
 		end
 		local result = DatabaseModel.prepareForSQL( db, 
