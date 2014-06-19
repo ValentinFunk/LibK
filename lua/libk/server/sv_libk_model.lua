@@ -62,6 +62,30 @@ local function initializeTable( class )
 	return def:Promise( )
 end
 
+local function generateImplodedWhereClause( tblFieldValues, model )
+		local whereClause = "WHERE "
+		local numItems = table.Count( tbl )
+		local added = 0
+		for field, value in pairs( tbl ) do
+			if not model.fields[field] then
+				error( 1, "Invalid field " .. field .. " passed to " .. class.name .. ".findWhere" )
+			end
+			
+			whereClause = whereClause .. string.format( "`%s`.`%s` = %s", 
+				model.tableName,
+				field, 
+				DatabaseModel.prepareForSQL( class.DB, model.fields[field], value )
+			)
+			
+			added = added + 1
+			if numItems > added then
+				whereClause = whereClause .. " AND "
+			end
+		end
+		
+		return whereClause
+	end
+
 local MODELS = {}
 function DatabaseModel:included( class )
 	MODELS[class.name] = class --Save model for later lookups
@@ -128,30 +152,29 @@ function DatabaseModel:included( class )
 	
 	function class.static.findWhere( tbl, recursive )
 		local model = class.static.model
-		
-		local whereClause = "WHERE "
-		local numItems = table.Count( tbl )
-		local added = 0
-		for field, value in pairs( tbl ) do
-			if not model.fields[field] then
-				error( 1, "Invalid field " .. field .. " passed to " .. class.name .. ".findWhere" )
-			end
-			
-			whereClause = whereClause .. string.format( "`%s`.`%s` = %s", 
-				model.tableName,
-				field, 
-				DatabaseModel.prepareForSQL( class.DB, model.fields[field], value )
-			)
-			
-			added = added + 1
-			if numItems > added then
-				whereClause = whereClause .. " AND "
-			end
-		end
-		return class.static.getDbEntries( whereClause, recursive )
+		return class.static.getDbEntries( generateImplodedWhereClause( tbl, model ), recursive )
 	end
 	
-	function class.static.getDbEntries( whereQuery, recursive, extra )
+	function class.static.removeWhere( tbl )
+		local model = class.static.model
+		
+		local whereClause = generateImplodedWhereClause( tbl, model )
+		return DATABASES[class.DB].DoQuery( string.format( "DELETE FROM `%s` %s", model.tableName, whereClause ) ) 
+	end
+	
+	/*
+		WARNING: Careful with SQL injection whenever using this function!
+	*/
+	function class.static.removeDbEntries( whereClause )
+		local model = class.static.model
+		local query = string.format( "DELETE FROM `%s` %s", model.tableName, whereClause )
+		return DATABASES[class.DB].DoQuery( query )
+	end	
+	
+	/*
+		WARNING: Careful with SQL injection whenever using this function!
+	*/
+	function class.static.getDbEntries( whereClause, recursive, extra )
 		local def = Deferred( )
 		
 		extra = extra or "" --For example LIMIT, ORDER BY, etc.
@@ -194,7 +217,7 @@ function DatabaseModel:included( class )
 			end
 		end
 		
-		table.insert( query, whereQuery )
+		table.insert( query, whereClause )
 		table.insert( query, " " .. extra )
 		
 		local sqlStr = table.concat( query, " " )

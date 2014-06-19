@@ -1,6 +1,9 @@
 --Kamshak: This is used for the item classes. For examples consult https://github.com/kikito/middleclass/wiki/
 --Modified PrintTable to print instances prettier
 function isObject( t )
+	if pac and istable( t ) and t.IsValid and not t:IsValid( ) then
+		return false
+	end
 	return istable( t ) and t.class and istable( t.class ) and t.class.name
 end
 
