@@ -24,6 +24,13 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ]]
 
+
+-- For all easing functions:
+-- t = elapsed time
+-- b = begin
+-- c = change == ending - beginning
+-- d = duration (total time)
+
 local pow = math.pow
 local sin = math.sin
 local cos = math.cos
@@ -426,3 +433,42 @@ easing = {
   inOutBounce = inOutBounce,
   outInBounce = outInBounce,
 }
+
+-- t = elapsed time
+-- b = begin
+-- c = change == ending - beginning
+-- d = duration (total time)
+
+local tweens = {}
+
+function updateTweens( )
+	for k, v in pairs( tweens ) do
+		local elapsed = RealTime( ) - v.begin
+		local progress = v.method( elapsed, 0, 1, v.duration )
+		progress = math.Clamp( progress, 0, 1 ) --clamp to valid range
+		v.callback( progress )
+		if elapsed >= v.duration then
+			v.def:Resolve( )
+			tweens[k] = nil --finished
+		end
+	end
+end
+
+hook.Add( "Think", "LibK_UpdateTweens", updateTweens )
+
+--method one of easing.*
+--duration is duration
+--callback is function callback( progress ) progress is float between 0 and 1
+function LibK.tween( method, duration, callback )
+	local def = Deferred( )
+	
+	table.insert( tweens, {
+		method = method,
+		begin = RealTime( ),
+		duration = duration,
+		callback = callback, 
+		def = def
+	} )
+	
+	return def:Promise( )
+end
