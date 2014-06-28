@@ -469,7 +469,8 @@ function DatabaseModel.generateSQLForType( fieldtype, options )
 		updatedTime = "TIMESTAMP NULL",
 		time = "TIMESTAMP NULL",
 		text = "TEXT NULL",
-		luadata = "TEXT NULL"
+		luadata = "TEXT NULL",
+		json = "TEXT NULL",
 	}
 	
 	--No AUTO_INCREMENT in SQLite
@@ -498,7 +499,11 @@ function DatabaseModel:loadFieldFromDb( fieldname, data )
 			end
 		end
 	elseif fieldtype == "luadata" then
-		local data = LibK.luadata.Decode( data )
+		local data = LibK.luadata.Decode( data )[1]
+		self[fieldname] = data
+	elseif fieldtype == "json" then
+		local deserialized = util.JSONToTable( data )
+		local data = deserialized[1]
 		self[fieldname] = data
 	elseif fieldtype == "bool" then
 		self[fieldname] = ( data == 0 ) and false or true
@@ -535,7 +540,9 @@ function DatabaseModel.prepareForSQL( db, fieldtype, value )
 	elseif fieldtype == "int" then
 		return escape( db, tonumber( value ) )
 	elseif fieldtype == "luadata" then
-		return escape( db, LibK.luadata.Encode( value ) )
+		return escape( db, LibK.luadata.Encode( { value } ) )
+	elseif fieldtype == "json" then
+		return escape( db, util.TableToJSON( { value } ) )
 	elseif fieldtype == "bool" then
 		return value and 1 or 0
 	elseif fieldtype == "classname" then
