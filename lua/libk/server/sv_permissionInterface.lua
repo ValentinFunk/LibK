@@ -7,7 +7,6 @@ function PermissionInterface.banPlayer( ply, time, reason, admin )
 end
 
 function PermissionInterface.banId( steam, time, reason, admin )
-	print( steam, time, reason, admin )
 	if exsto then
 	elseif ulx then
 		ulx.banid( admin, steam, time, reason )
