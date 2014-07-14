@@ -147,3 +147,11 @@ AddCSLuaFile( "libk/3rdparty/luadata.lua" )
 LibK.loadThirdparty( "von", "Vercas", "libk/3rdparty", "", "von.lua" )
 AddCSLuaFile( "libk/3rdparty/von.lua" )
 
+--Circular Queue by MDave. Licensed under the MIT License
+LibK.loadThirdparty( "CircularQueue", "MDave", "libk/3rdparty", "", "circular_queue.lua" )
+AddCSLuaFile( "libk/3rdparty/circular_queue.lua" )
+
+--PNG Lib by MDave. Licensed under the MIT License
+LibK.loadThirdparty( "png", "MDave", "libk/3rdparty", "", "png.lua" )
+AddCSLuaFile( "libk/3rdparty/png.lua" )
+
