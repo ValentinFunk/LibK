@@ -70,7 +70,15 @@ local function _setClassMetatable(klass)
 end
 
 local function _createClass(name, super)
-  local klass = { name = name, super = super, static = {}, __mixins = {}, __instanceDict={} }
+  --LibK modification: overwrite existing classes with the same name
+  local klass
+  for existingClass, bool in pairs( _classes ) do
+	if existingClass.name == name then
+		klass = existingClass
+	end
+  end
+  
+  klass = klass or { name = name, super = super, static = {}, __mixins = {}, __instanceDict={} }
   klass.subclasses = setmetatable({}, {__mode = "k"})
 
   _setClassDictionariesMetatables(klass)
