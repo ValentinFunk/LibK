@@ -3,6 +3,13 @@ In large part ripped from DarkRP
 MySQL and SQLite connectivity
 ---------------------------------------------------------------------------*/
 
+/*
+	Makes all database operations block
+*/
+function LibK.SetBlocking( bShouldBlock )
+	LibK.databaseShouldBlock = bShouldBlock
+end
+
 DATABASES = DATABASES or {}
 function LibK.getDatabaseConnection( config, name )
 	local DB = {}
@@ -122,7 +129,7 @@ function LibK.getDatabaseConnection( config, name )
 				if callback then callback(data, query:lastInsert()) end
 			end
 			query:start()
-			if blocking or DB.shouldBlock then
+			if blocking or DB.shouldBlock or LibK.databaseShouldBlock then
 				query:wait( )
 			end
 			return
