@@ -20,3 +20,11 @@ function PermissionInterface.query( ply, access )
 	error( "[KReport]No compatible admin mod detected. ULX, Evolve and Exsto are supported" )
 	return false
 end
+
+function PermissionInterface.anyAllowed( ply, tblAccess )
+	for k, v in pairs( tblAccess ) do
+		if PermissionInterface.query( ply, v ) then
+			return true
+		end
+	end
+end
