@@ -1,6 +1,0 @@
-local folder = VFS.Root:Mount ("luasv", VFS.RealFolder ("", "LUA", ""), "luasv")
-folder:SetDeletable (false)
-folder:SetOwner (GAuth.GetSystemId (), GAuth.GetServerId ())
-folder:GetPermissionBlock ():SetInheritPermissions (GAuth.GetSystemId (), false)
-folder:GetPermissionBlock ():SetGroupPermission (GAuth.GetSystemId (), "Super Administrators", "Read",        GAuth.Access.Allow)
-folder:GetPermissionBlock ():SetGroupPermission (GAuth.GetSystemId (), "Super Administrators", "View Folder", GAuth.Access.Allow)
