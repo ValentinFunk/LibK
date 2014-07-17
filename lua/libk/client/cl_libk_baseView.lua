@@ -25,7 +25,7 @@ local function processNetTable( netTable )
 		if isUnresolvedObject( v ) then
 			local class = getClass(v._classname)
 			if not class or not type( class ) == "table" then
-				error( "Invalid class in StartViewCall: " .. v._classname )
+				return false, "Invalid class in StartViewCall: " .. v._classname
 			end
 			local instance = class:new( )
 			
@@ -40,11 +40,18 @@ local function processNetTable( netTable )
 			netTable[k] = instance
 			
 			--Recursively check for other objects within the object fields
-			processNetTable( netTable[k] )
+			local success, err = processNetTable( netTable[k] )
+			if not success then
+				return success, err
+			end
 		elseif istable( v ) and k != "class" then
-			processNetTable( v )
+			local success, err = processNetTable( v )
+			if not success then
+				return success, err
+			end
 		end
 	end
+	return true
 end
 
 net.Receive( "StartView", function( len )
@@ -53,7 +60,10 @@ net.Receive( "StartView", function( len )
 	local func = net.ReadString( )
 
 	--Scan for and Replace class net tables with class instances
-	processNetTable( vars )
+	local success, err = processNetTable( vars )
+	if err then
+		error( "Error when decoding call " .. viewClass .. ":" .. func .. " -> " .. err )
+	end
 	
 	--Debug log
 	local argStrs = {}
