@@ -55,6 +55,14 @@ function generateCleanTable( tbl, model, notfirstpass )
 	return tbl
 end
 
+function LibK.copyModelFields( destination, source, model )
+	for k, v in pairs( source ) do
+		if model.fields[k] then
+			destination[k] = v
+		end
+	end	
+end
+
 --Debugging/Tracing for when gmod crashes
 
 function sethk( )
