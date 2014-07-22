@@ -2,9 +2,6 @@ DatabaseModel = {}
 
 local function DBQuery( db, ... )
 	local args = {...}
-	if LibK.LogSQL then
-		file.Append("sqlqueries.txt", "\n"..os.date().. "\t"..(args[1] or ""))
-	end
 	if not DATABASES[db] then
 		KLogf( 2, "Odd Error in DB, invalid database %s", db )
 		debug.Trace( )
@@ -23,9 +20,50 @@ local function escape( db, str )
 	return DATABASES[db].SQLStr( str )
 end
 
-local function initializeTable( class )
-	local def = Deferred( )
+local tablesInitialized = {}
+local waitingPromises = {}
+
+function LibK.ResetTableCache( )
+	tablesInitialized = {}
+end
+
+local function WhenModelsLoaded( modelsRequired )
+	local def = Deferred()
 	
+	table.insert( waitingPromises, {
+		modelsRequired = modelsRequired,
+		promise = def
+	} )
+	
+	return def:Promise( )
+end
+
+local function onTableInitialized( tbl )
+	table.insert( tablesInitialized, tbl )
+	for k, v in pairs( waitingPromises ) do
+		local tableMissing = false
+		for _, tableName in pairs( v.modelsRequired ) do
+			if not table.HasValue( tablesInitialized, tableName ) then
+				tableMissing = true
+			end
+		end
+		if not tableMissing then
+			waitingPromises[k] = nil
+			v.promise:Resolve( )
+		end
+	end
+end
+
+function onTableInitializationFailed( tbl )
+	for k, v in pairs( waitingPromises ) do
+		if table.HasValue( v.modelsRequired, tbl ) then
+			v.promise:Reject( -1, "Parent table " .. tbl .. " failed to initialize" )
+		end
+	end
+end
+
+
+local function initializeTable( class )
 	local model = class.static.model
 	if not class.DB then
 		def:Reject( -1, Format( "Model %s does not have a database", class.name ) )
@@ -50,41 +88,92 @@ local function initializeTable( class )
 	table.insert( fieldsPart, "PRIMARY KEY (`" .. ( model.overrideKey or "id" ) .. "` ASC)" )
 		
 	local fieldsPart = table.concat( fieldsPart, ", " )
-	local sqlStr = query .. fieldsPart .. ")"
 	
-	DBQuery( class.DB, sqlStr, function( )
-		def:Resolve( )
-	end, 
-	function( )
-		def:Reject( 0, "SQL Error" )
-	end )
-	
-	return def:Promise( )
-end
-
-local function generateImplodedWhereClause( tblFieldValues, model )
-		local whereClause = "WHERE "
-		local numItems = table.Count( tbl )
-		local added = 0
-		for field, value in pairs( tbl ) do
-			if not model.fields[field] then
-				error( 1, "Invalid field " .. field .. " passed to " .. class.name .. ".findWhere" )
-			end
-			
-			whereClause = whereClause .. string.format( "`%s`.`%s` = %s", 
-				model.tableName,
-				field, 
-				DatabaseModel.prepareForSQL( class.DB, model.fields[field], value )
-			)
-			
-			added = added + 1
-			if numItems > added then
-				whereClause = whereClause .. " AND "
-			end
+	local modelsRequired = {}
+	local fkParts = {""}
+	for name, info in pairs( model.belongsTo or {} ) do
+		local onDelete = "RESTRICT"
+		if info.onDelete then
+			onDelete = info.onDelete
+		elseif model.fields[info.foreignKey] == "optKey" then
+			onDelete = "SET NULL"
 		end
 		
-		return whereClause
+		local onUpdate = "RESTRICT"
+		if info.onUpdate then
+			onUpdate = info.onUpdate
+		elseif model.fields[info.foreignKey] == "optKey" then
+			onUpdate = "SET NULL"
+		end
+		
+		local foreignClass = getClass( info.class )
+		if not foreignClass then
+			error( "Invalid class " .. info.class .. " for model " .. class.name .. ", constraint " .. name )
+		end
+		
+		table.insert( fkParts, Format( "CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`) ON DELETE %s ON UPDATE %s",
+			"FK_" .. util.CRC( class.name .. "_" .. name .. "_" .. info.class ),
+			info.foreignKey,
+			foreignClass.model.tableName,
+			foreignClass.model.overrideKey or "id",
+			onDelete,
+			onUpdate
+		) )
+		
+		--Wait for parent models to load before creating the table unless it's a self-reference
+		if info.class != class.name then
+			table.insert( modelsRequired, info.class )
+		end
 	end
+	fkParts = table.concat( fkParts, ", " )
+	
+	local sqlStr = query .. fieldsPart  .. fkParts .. ")"
+	
+	local promise
+	if #modelsRequired > 0 then
+		promise = WhenModelsLoaded( modelsRequired )
+		--print( "Class ", class.name, " depends on " )
+		--PrintTable( modelsRequired )
+		--PrintTable( belongsTo or {} )
+	else
+		promise = Deferred( )
+		promise:Resolve( )
+	end
+	
+	return promise:Then( function( )
+		return DATABASES[class.DB].DoQuery( sqlStr )
+		:Done( function( )
+			onTableInitialized( class.name )
+		end )
+		:Fail( function( )
+			onTableInitializationFailed( class.name )
+		end )
+	end )
+end
+
+local function generateImplodedWhereClause( tblFieldValues, model, class )
+	local whereClause = "WHERE "
+	local numItems = table.Count( tblFieldValues )
+	local added = 0
+	for field, value in pairs( tblFieldValues ) do
+		if not model.fields[field] then
+			error( "Invalid field " .. field .. " passed to " .. class.name .. ".findWhere", 1 )
+		end
+		
+		whereClause = whereClause .. string.format( "`%s`.`%s` = %s", 
+			model.tableName,
+			field, 
+			DatabaseModel.prepareForSQL( class.DB, model.fields[field], value )
+		)
+		
+		added = added + 1
+		if numItems > added then
+			whereClause = whereClause .. " AND "
+		end
+	end
+	
+	return whereClause
+end
 
 local MODELS = {}
 function DatabaseModel:included( class )
@@ -152,13 +241,13 @@ function DatabaseModel:included( class )
 	
 	function class.static.findWhere( tbl, recursive )
 		local model = class.static.model
-		return class.static.getDbEntries( generateImplodedWhereClause( tbl, model ), recursive )
+		return class.static.getDbEntries( generateImplodedWhereClause( tbl, model, class ), recursive )
 	end
 	
 	function class.static.removeWhere( tbl )
 		local model = class.static.model
 		
-		local whereClause = generateImplodedWhereClause( tbl, model )
+		local whereClause = generateImplodedWhereClause( tbl, model, class )
 		return DATABASES[class.DB].DoQuery( string.format( "DELETE FROM `%s` %s", model.tableName, whereClause ) ) 
 	end
 	
@@ -546,7 +635,7 @@ function DatabaseModel.prepareForSQL( db, fieldtype, value )
 	elseif fieldtype == "bool" then
 		return value and 1 or 0
 	elseif fieldtype == "classname" then
-		return ecape( db, value ) --Class of this instance
+		return escape( db, value ) --Class of this instance
 	elseif fieldtype == "player" then
 		if type( value ) == "Player" then
 			return escape( db, value:SteamID( ) ) --so findByPlayer( playerObj ) works 

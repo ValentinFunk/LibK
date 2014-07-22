@@ -97,6 +97,9 @@ function LibK.getDatabaseConnection( config, name )
 	end
 
 	function DB.Query(sqlText, callback, errorCallback, blocking)
+		if LibK.LogSQL then
+			file.Append("sqlqueries.txt", "\n"..os.date().. "\t"..(sqlText or ""))
+		end
 		if DB.CONNECTED_TO_MYSQL then
 			local query = DB.MySQLDB:query(sqlText)
 			local data
