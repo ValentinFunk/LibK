@@ -253,6 +253,14 @@ function LibK.getDatabaseConnection( config, name )
 		return "\"" .. DB.MySQLDB:escape(tostring(str)) .. "\""
 	end
 	
+	function DB.DisableForeignKeyChecks( bDisable )
+		if DB.CONNECTED_TO_MYSQL then
+			return DB.DoQuery( "SET FOREIGN_KEY_CHECKS = " .. ( bDisable and "0" or "1" ) )
+		else
+			return DB.DoQuery( "PRAGMA foreign_keys = " .. ( bDisable and "OFF" or "ON" ) )
+		end
+	end
+	
 	DATABASES[name] = DB
 	if config.UseMysql then
 		KLogf( 4, "Connecting to %s@%s db: %s", config.User, config.Host, config.Database )
