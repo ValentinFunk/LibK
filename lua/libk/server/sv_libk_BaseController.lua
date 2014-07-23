@@ -66,6 +66,8 @@ net.Receive( "LibK_Transaction", function( len, ply )
 			if not promise or not istable( promise ) then
 				def:Reject( "Internal Server Error 403" ) --bad gateway? hmmm w/e
 				ErrorNoHalt( "Invalid transaction " .. action .. ", doesn't return a promise" )
+				KLogf( 1, "LUA Error in Controller " .. controller .. " action " .. action .. ":\n" )
+				debug.Trace( )
 			else
 				--Forward promise to transaction
 				promise:Done( function( ... )
@@ -76,15 +78,17 @@ net.Receive( "LibK_Transaction", function( len, ply )
 				end )
 			end
 		else
-			local pcallResults = { pcall( instance[action], instance, ply, unpack( args ) ) }
-			if not pcallResults[1] then
-				def:Reject( 1, "Internal Server Errror" )
-				KLogf( 1, "LUA Error in Controller " .. controller .. " action " .. action .. ":\n" )
-				KLogf( 1, pcallResults[2] )
-				debug.Trace( )
+			local promise = instance[action]( instance, ply, unpack( args ) )
+			if not promise or not istable ( promise ) then
+				def:Reject( "500 - Internal Server Error" ) 
+				ErrorNoHalt( "Invalid transaction " .. action .. ", doesn't return a promise, help!")
 			else
-				table.remove( pcallResults, 1 ) --Remove success bool
-				def:Resolve( unpack( pcallResults ) ) --forward args
+				promise:Done ( function( ... ) 
+					def:Resolve( ... )
+				end )
+				promise:Fail( function ( ... )
+					def:Reject( ... )
+				end )
 			end
 		end
 		
