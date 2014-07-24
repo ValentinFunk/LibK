@@ -16,8 +16,13 @@ function PermissionInterface.query( ply, access )
 	if exsto then
 		return ply:IsAllowed( access )
 	end
+
+	KLogf(4, "[KReport] No compatible admin mod detected. ULX, Evolve and Exsto are supported- Defaulting." )
 	
-	error( "[KReport]No compatible admin mod detected. ULX, Evolve and Exsto are supported" )
+	if ply:IsSuperAdmin() then
+		return true
+	end
+
 	return false
 end
 
