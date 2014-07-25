@@ -267,6 +267,12 @@ function LibK.getDatabaseConnection( config, name )
 		DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 	else
 		DB.IsConnected = true
+		
+		-- Enable FK
+		DB.Query( "PRAGMA foreign_keys = ON;" ) 
+		DB.DisableForeignKeyChecks( false )
+
+		-- Run hooks
 		hook.Call("LibK_DatabaseInitialized", nil, DB, name )
 	end
 	
