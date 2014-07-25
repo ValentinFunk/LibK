@@ -132,9 +132,6 @@ local function initializeTable( class )
 	local promise
 	if #modelsRequired > 0 then
 		promise = WhenModelsLoaded( modelsRequired )
-		--print( "Class ", class.name, " depends on " )
-		--PrintTable( modelsRequired )
-		--PrintTable( belongsTo or {} )
 	else
 		promise = Deferred( )
 		promise:Resolve( )
