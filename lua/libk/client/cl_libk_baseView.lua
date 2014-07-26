@@ -53,6 +53,7 @@ local function processNetTable( netTable )
 	end
 	return true
 end
+LibK.processNetTable = processNetTable
 
 net.Receive( "StartView", function( len )
 	local viewClass = net.ReadString( )
