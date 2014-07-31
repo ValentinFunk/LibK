@@ -71,6 +71,7 @@ local function initializeTable( class )
 	end
 	local database = DATABASES[class.DB]
 	if not database then
+		local def = Deferred( )
 		def:Reject( -2, "Database " .. class.DB .. " has not been initialized" )
 		return def:Promise( )
 	end
