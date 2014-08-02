@@ -33,3 +33,24 @@ function PermissionInterface.anyAllowed( ply, tblAccess )
 		end
 	end
 end
+
+function PermissionInterface.getRanks( )
+	local ranks = { } --internalName: string, title: string
+	if ULib then
+		for internalName, rankInfo in pairs( ULib.ucl.groups ) do
+			if v != ULib.ACCESS_ALL then
+				table.insert( ranks, { internalName = internalName, title = internalName } )
+			end
+		end
+		return ranks
+	end
+	
+	if evolve then
+		for internalName, rankInfo in pairs( evolve.ranks ) do
+			table.insert( ranks, { internalName = internalName, title = rankInfo.Title } )
+		end
+		return ranks
+	end
+	
+	return ranks
+end

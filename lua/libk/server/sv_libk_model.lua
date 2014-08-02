@@ -219,8 +219,8 @@ function DatabaseModel:included( class )
 		return aliasedFields
 	end
 	
-	function class.static.getAll( )
-		return class.static.getDbEntries( "WHERE 1 = 1" )
+	function class.static.getAll( recursive, extra )
+		return class.static.getDbEntries( "WHERE 1 = 1", recursive, extra)
 	end
 	
 	--Create Magic Functions
@@ -323,10 +323,12 @@ function DatabaseModel:included( class )
 				for fieldname, fieldtype in pairs( model.fields ) do
 					if fieldtype == "classname" then
 						constructor = getClass(row[model.tableName .. "." .. fieldname])
-						if not constructor then 
-							error( "Invalid class " .. row[model.tableName .. "." .. fieldname] .. " for " .. class.name .. " id " .. ( row.id or "nil" ) )
-						end
+						KLogf( 1, "Invalid class " .. row[model.tableName .. "." .. fieldname] .. " for " .. class.name .. " id " .. ( row.id or "nil" ) )
 					end
+				end
+				
+				if not constructor then
+					constructor = class
 				end
 				
 				--Create and load instance
@@ -369,7 +371,7 @@ function DatabaseModel:included( class )
 							constructor = getClass( row[relName .. "." .. fieldname] )
 							if not constructor then 
 								PrintTable( row )
-								error( "Invalid class " .. row[fieldname] .. " for " .. class.name .. " id " .. row.id )
+								error( "Invalid class " .. row[relName .. "." .. fieldname] .. " for " .. class.name .. " id " .. row[relName .. ".id"] )
 							end
 						end
 					end
