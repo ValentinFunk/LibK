@@ -317,13 +317,16 @@ function DatabaseModel:included( class )
 			local relationshipPromises = {}
 			local instances = {}
 			for k, row in pairs( data ) do
-				local constructor = class
-				
+				local constructor
+				local addDebugInfo = false
+				local classnameValue
 				--handle classname field that overrides this entries retrieved model class(useful for inheritance etc.)
 				for fieldname, fieldtype in pairs( model.fields ) do
 					if fieldtype == "classname" then
 						constructor = getClass(row[model.tableName .. "." .. fieldname])
 						if not constructor then
+							addDebugInfo = true
+							classnameValue = row[model.tableName .. "." .. fieldname]
 							KLogf( 1, "Invalid class " .. row[model.tableName .. "." .. fieldname] .. " for " .. class.name .. " id " .. ( row[model.tableName .. ".id"] or "nil" ) )
 						end
 					end
@@ -336,6 +339,10 @@ function DatabaseModel:included( class )
 				--Create and load instance
 				local instance = constructor:new( row.id )
 				table.insert( instances, instance )
+				if addDebugInfo then
+					instance._creationFailed = true
+					instance._className = classnameValue
+				end
 				
 				--load fields
 				local objPattern = "^(" .. model.tableName .. "%.)"
