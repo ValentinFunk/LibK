@@ -323,7 +323,9 @@ function DatabaseModel:included( class )
 				for fieldname, fieldtype in pairs( model.fields ) do
 					if fieldtype == "classname" then
 						constructor = getClass(row[model.tableName .. "." .. fieldname])
-						KLogf( 1, "Invalid class " .. row[model.tableName .. "." .. fieldname] .. " for " .. class.name .. " id " .. ( row.id or "nil" ) )
+						if not constructor then
+							KLogf( 1, "Invalid class " .. row[model.tableName .. "." .. fieldname] .. " for " .. class.name .. " id " .. ( row[model.tableName .. ".id"] or "nil" ) )
+						end
 					end
 				end
 				
