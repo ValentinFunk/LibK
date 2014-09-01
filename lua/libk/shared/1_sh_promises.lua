@@ -292,5 +292,19 @@ function WhenAllFinished( tblPromises )
 	end
 	return def:Promise( ), def
 end
- 
+
+Promise = {}
+
+function Promise.Reject( ... )
+	local def = Deferred( )
+	def:Reject( ... )
+	return def:Promise()
+end
+
+function Promise.Resolve( ... )
+	local def = Deferred( )
+	def:Resolve( ... )
+	return def:Promise()
+end
+
 return Deferred;
