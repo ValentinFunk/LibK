@@ -155,3 +155,7 @@ AddCSLuaFile( "libk/3rdparty/circular_queue.lua" )
 LibK.loadThirdparty( "png", "MDave", "libk/3rdparty", "", "png.lua" )
 AddCSLuaFile( "libk/3rdparty/png.lua" )
 
+--Semver.lua Lib by kikito. Licensed under the MIT License
+LibK.loadThirdparty( "version", "kikito", "libk/3rdparty", "", "semver.lua" )
+AddCSLuaFile( "libk/3rdparty/semver.lua" )
+

@@ -63,6 +63,12 @@ function LibK.InitializeAddon( addonTable )
 	
 	table.insert( LibK.addonsLoaded, addonTable )
 
+	if SERVER then
+		if not LibK.updateAddon( addonTable ) then
+			KLogf( 1, "[%s] Update Failed, aborting load!", addonTable.addonName )
+			return
+		end 
+	end
 	if addonTable.loadAfterGamemode and not GAMEMODE then
 		hook.Add( "InitPostEntity", "LibKInit" .. name, function( )
 			loadAddon( addonTable )
