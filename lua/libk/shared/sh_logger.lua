@@ -5,7 +5,7 @@ function KLog( intLogLevel, strMessage, ... )
 	3: Important messages
 	4: Debug messages
 	*/
-	if LibK.Debug then
+	if LibK.Debug or intLogLevel <= 2 then
 		local colors = {
 			Color( 255, 0, 0 ),
 			Color( 255, 175, 0 ),
@@ -13,7 +13,12 @@ function KLog( intLogLevel, strMessage, ... )
 			Color( 150, 150, 150 ),
 		}
 		if SERVER then
-			MsgN( strMessage )
+			--Server can only do red:
+			if intLogLevel <= 3 then
+				MsgC( colors[1], strMessage .. "\n" )
+			else
+				MsgN( strMessage )
+			end
 		else
 			MsgC( colors[intLogLevel], strMessage .. "\n" )
 		end
@@ -25,7 +30,6 @@ function KLog( intLogLevel, strMessage, ... )
 				file.Append( "LibK_Debug.txt", os.date() .. " - " .. strMessage .. "\n" )
 			end
 			if intLogLevel <= 3 then
-				MsgC( Color( 255, 0, 0 ), strMessage )
 				file.Append( "LibK_Error.txt", os.date() .. " - " .. strMessage .. "\n" )
 			end
 		end
