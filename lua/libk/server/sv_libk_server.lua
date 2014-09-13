@@ -5,6 +5,18 @@ resource.AddFile( "resource/fonts/seguil.ttf" )
 resource.AddFile( "resource/fonts/seguisl.ttf" )
 resource.AddFile( "resource/fonts/seguisb.ttf" )
 resource.AddFile( "resource/fonts/CAMBRIA.TTC" )
+
+--Used to ensure something runs after Initialize
+LibK.InitializePromise = Deferred( )
+hook.Add( "Initialize", "LibK_Initialize", function( )
+	LibK.InitializePromise:Resolve( )
+end )
+
+LibK.InitPostEntityPromise = Deferred( )
+hook.Add( "InitPostEntity", "LibK_InitPostEntity", function( )
+	LibK.InitPostEntityPromise:Resolve( )
+end )
+
 /*
 	Main function all plugins should use to initialize LibK Database/Model use.
 	pluginName is a unique identifier for the plugin
@@ -19,7 +31,10 @@ function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo, manualInitialize 
 		pluginTable.DB = LibK.getDatabaseConnection( sqlInfo, pluginName )
 	end
 	if not manualInitialize then
-		hook.Add( "Initialize", "LibK_Initialize" .. pluginName, pluginTable.DBInitialize )
+		LibK.InitializePromise:Done( function( )
+			pluginTable.DBInitialize( )
+		end )
+		
 		hook.Add( "OnReloaded", "LibK_Initialize" .. pluginName, pluginTable.DBInitialize )
 	end
 

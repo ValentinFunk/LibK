@@ -30,17 +30,19 @@ function LibK.performUpdate( addonTable, version )
 	local func = CompileFile( upgradeScriptName )
 	if not func then
 		KLogf( 1, "\tError compiling upgrade script %s", upgradeScriptName )
-		return false
+		return Promise.Reject( "LUA Error" )
 	end
 	local succ, err = pcall( func )
 	if not succ then
 		KLogf( 1, "\tError running upgrade script %s: %s", upgradeScriptName, err )
-		return false
+		return Promise.Reject( "LUA Error" )
 	end
-	KLogf( 5, "\tUpdated to %s", version )
-	LibK.storeAddonVersion( addonTable, version )
 	
-	return true
+	return err
+	:Done( function( )
+		KLogf( 5, "\tUpdated to %s", version )
+		LibK.storeAddonVersion( addonTable, version )
+	end )
 end
 
 function LibK.updateAddon( addonTable )
@@ -50,12 +52,13 @@ function LibK.updateAddon( addonTable )
 	
 	if version >= newVersion then 
 		KLogf( 4, "\t Up to date, nothing to do" )
-		return true
+		return Promise.Resolve( )
 	end
 	
 	local head = Format( "Updating %s: %s - %s", addonTable.addonName, version, newVersion )
 	KLog( 4, LibK.consoleHeader( 80, "=", head ) )
 
+	local promises = {}
 	local currentVersion = version
 	for major = version.major, newVersion.major do
 		for minor = 0, 50 do
@@ -66,19 +69,28 @@ function LibK.updateAddon( addonTable )
 			
 			local upgradeScriptName = addonTable.luaroot .. "/updatescripts/" .. tostring( versionToCheck ) .. ".lua"
 			if file.Exists( upgradeScriptName, "LUA" ) then
-				KLogf( 5, "\tRunning update %s - %s", currentVersion, versionToCheck )
-				LibK.SetBlocking( true )
-				
-				LibK.performUpdate( addonTable, versionToCheck )
+				local promise = Promise.Resolve( )
+				:Then( function( )
+					KLogf( 5, "\tRunning update %s - %s", currentVersion, versionToCheck )
+					return LibK.performUpdate( addonTable, versionToCheck )
+				end )
+				table.insert( promises, promise )
 				currentVersion = versionToCheck
-				
-				LibK.SetBlocking( false )
 			end
 		end
 	end
 	
-	local head = Format( "All Done", addonTable.addonName, version, newVersion )
-	KLog( 4, LibK.consoleHeader( 80, "=", head ) )
+	local chainedPromise = Promise.Resolve( )
+	for k, v in ipairs( promises ) do
+		chainedPromise = chainedPromise:Then( function( )
+			return v
+		end )
+	end
 	
-	return true
+	chainedPromise:Done( function()
+		local head = Format( "All Done", addonTable.addonName, version, newVersion )
+		KLog( 4, LibK.consoleHeader( 80, "=", head ) )
+	end )
+	
+	return chainedPromise
 end

@@ -636,7 +636,11 @@ function DatabaseModel.prepareForSQL( db, fieldtype, value )
 	if fieldtype == "string" then
 		return escape( db, value )
 	elseif fieldtype == "int" then
-		return escape( db, tonumber( value ) )
+		local numVal = tonumber( value )
+		if not numVal then
+			error( "Invalid number value " .. value .. " passed to database" )
+		end
+		return escape( db, numVal )
 	elseif fieldtype == "luadata" then
 		return escape( db, LibK.luadata.Encode( { value } ) )
 	elseif fieldtype == "json" then
