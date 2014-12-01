@@ -597,8 +597,10 @@ function DatabaseModel:loadFieldFromDb( fieldname, data )
 			end
 		end
 	elseif fieldtype == "luadata" then
-		local data = LibK.luadata.Decode( data )[1]
-		self[fieldname] = data
+		local data = LibK.luadata.Decode( data or "" )[1] 
+		if data then
+			self[fieldname] = data
+		end
 	elseif fieldtype == "json" then
 		local deserialized = util.JSONToTable( data )
 		local data = deserialized[1]
@@ -710,7 +712,7 @@ function DatabaseModel:getFieldForDb( fieldname )
 			return "NULL"
 		end
 	else
-		if self[fieldname] == nil then
+		if self[fieldname] == nil and model.fields[fieldname] != "luadata" then
 			ErrorNoHalt( "No value given for " .. self.class.name .. ", field " .. fieldname )
 		end
 		local result = DatabaseModel.prepareForSQL( db, 
