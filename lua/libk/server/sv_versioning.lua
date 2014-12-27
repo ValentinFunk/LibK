@@ -67,6 +67,10 @@ function LibK.updateAddon( addonTable )
 				break
 			end
 			
+			if versionToCheck <= currentVersion then
+				continue
+			end
+			
 			local upgradeScriptName = addonTable.luaroot .. "/updatescripts/" .. tostring( versionToCheck ) .. ".lua"
 			if file.Exists( upgradeScriptName, "LUA" ) then
 				local promise = Promise.Resolve( )
@@ -88,6 +92,10 @@ function LibK.updateAddon( addonTable )
 	end
 	
 	chainedPromise:Done( function()
+		if #promises == 0 then
+			KLog( 4, " -> Nothing to do" )
+			LibK.storeAddonVersion( addonTable, newVersion )
+		end
 		local head = Format( "All Done", addonTable.addonName, version, newVersion )
 		KLog( 4, LibK.consoleHeader( 80, "=", head ) )
 	end )
