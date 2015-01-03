@@ -130,14 +130,55 @@ function mt:__eq(other)
          self.build == other.build
 end
 function mt:__lt(other)
-  return self.major < other.major or
-         self.minor < other.minor or
-         self.patch < other.patch or
-         (self.prerelease and not other.prerelease) or
-         smallerPrereleaseOrBuild(self.prerelease, other.prerelease) or
-         (not self.build and other.build) or
-         smallerPrereleaseOrBuild(self.build, other.build)
+	if self.major < other.major then
+		return true
+	end
+	if self.major > other.major then
+		return false
+	end
+	
+	if self.minor < other.minor then
+		return true
+	end
+	if self.minor > other.minor then
+		return false
+	end
+	
+	if self.patch < other.patch then
+		return true
+	end
+	if self.patch > other.patch then
+		return false
+	end
+	
+	if (self.prerelease and not other.prerelease) then 
+		return true
+	end
+	if other.prerelease and not self.prerelease then
+		return false
+	end
+	
+	if smallerPrereleaseOrBuild(self.prerelease, other.prerelease) then
+		return true
+	end
+	if smallerPrereleaseOrBuild(other.prerelease, self.prerelease) then
+		return false
+	end
+	
+	if not self.build and other.build then
+		return false
+	end
+	if not other.build and self.build then
+		return true
+	end 
+	
+	if smallerPrereleaseOrBuild(self.build, other.build) then
+		return true
+	end
+	
+	return false --self == other
 end
+
 function mt:__pow(other)
   return self.major == other.major and
          self.minor <= other.minor
