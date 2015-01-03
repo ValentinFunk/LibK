@@ -25,6 +25,10 @@ function LibK.getDatabaseConnection( config, name )
 
 	DB.CONNECTED_TO_MYSQL = false
 	DB.MySQLDB = nil
+
+	function DB.Log( ... )
+		KLog( 4, ... )
+	end
 	
 	function DB.SetBlocking( bBlocking )
 		DB.shouldBlock = bBlocking
@@ -274,10 +278,6 @@ function LibK.getDatabaseConnection( config, name )
 
 		-- Run hooks
 		hook.Call("LibK_DatabaseInitialized", nil, DB, name )
-	end
-	
-	function DB.Log( ... )
-		KLog( 4, ... )
 	end
 	
 	return DB
