@@ -58,7 +58,8 @@ function LibK.updateAddon( addonTable )
 	local head = Format( "Updating %s: %s - %s", addonTable.addonName, version, newVersion )
 	KLog( 4, LibK.consoleHeader( 80, "=", head ) )
 
-	local promises = {}
+	local chainedPromise = Promise.Resolve( )
+	
 	local currentVersion = version
 	for major = version.major, newVersion.major do
 		for minor = 0, 50 do
@@ -73,29 +74,20 @@ function LibK.updateAddon( addonTable )
 			
 			local upgradeScriptName = addonTable.luaroot .. "/updatescripts/" .. tostring( versionToCheck ) .. ".lua"
 			if file.Exists( upgradeScriptName, "LUA" ) then
-				local promise = Promise.Resolve( )
-				:Then( function( )
+				chainedPromise = chainedPromise:Then( function( ) 
 					KLogf( 5, "\tRunning update %s - %s", currentVersion, versionToCheck )
 					return LibK.performUpdate( addonTable, versionToCheck )
 				end )
-				table.insert( promises, promise )
 				currentVersion = versionToCheck
 			end
 		end
 	end
 	
-	local chainedPromise = Promise.Resolve( )
-	for k, v in ipairs( promises ) do
-		chainedPromise = chainedPromise:Then( function( )
-			return v
-		end )
-	end
-	
 	chainedPromise:Done( function()
-		if #promises == 0 then
-			KLog( 4, " -> Nothing to do" )
+		--if #promises == 0 then
+		--	KLog( 4, " -> Nothing to do" )
 			LibK.storeAddonVersion( addonTable, newVersion )
-		end
+		--end
 		local head = Format( "All Done", addonTable.addonName, version, newVersion )
 		KLog( 4, LibK.consoleHeader( 80, "=", head ) )
 	end )
