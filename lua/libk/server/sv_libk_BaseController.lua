@@ -28,12 +28,19 @@ function BaseController:startView( viewName, func, target,  ... )
 		error( "Invalid arg #3 to startView, player/playerTable expected, got " .. type( target ), 2 )
 	end
 	
-	--Send it
-	net.Start( "StartView" )
-		net.WriteString( viewName )
-		net.WriteTable( netTable )
-		net.WriteString( func )
-	net.Send( target )
+	if LibK.CompressNet then
+		local data = util.Compress( LibK.von.serialize( { viewName, netTable, func } ) )
+		net.Start( "StartView" )
+			net.WriteUInt( #data, 32 )
+			net.WriteData( data, #data )
+		net.Send( target )
+	else
+		net.Start( "StartView" )
+			net.WriteString( viewName )
+			net.WriteTable( netTable )
+			net.WriteString( func )
+		net.Send( target )
+	end
 end
 
 util.AddNetworkString( "LibK_Transaction" )

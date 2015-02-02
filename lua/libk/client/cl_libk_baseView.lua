@@ -56,9 +56,14 @@ end
 LibK.processNetTable = processNetTable
 
 net.Receive( "StartView", function( len )
-	local viewClass = net.ReadString( )
-	local vars = net.ReadTable( )
-	local func = net.ReadString( )
+	local viewClass, vars, func
+	if LibK.CompressNet then
+		local len = net.ReadUInt( 32 )
+		local data = LibK.von.deserialize( util.Decompress( net.ReadData( len ) ) )
+		viewClass, vars, func = data[1], data[2], data[3]
+	else
+		viewClass, vars, func = net.ReadString( ), net.ReadTable( ), net.ReadString( )
+	end
 
 	--Scan for and Replace class net tables with class instances
 	local success, err = processNetTable( vars )
