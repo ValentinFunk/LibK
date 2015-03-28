@@ -24,7 +24,7 @@ end
 if SERVER then
 	util.AddNetworkString( "KRELOAD" )
 	concommand.Add( "libk_reload", function( ply, cmd, args )
-		if not LibK.Debug or not ply:IsAdmin( ) then
+		if not LibK.Debug or ( ply:IsValid( ) and not ply:IsAdmin( ) ) then
 			return
 		end
 		reloadLibKAddons( )
