@@ -144,7 +144,7 @@ function LibK.getDatabaseConnection( config, name )
 
 		local lastError = sql.LastError()
 		local Result = sql.Query(sqlText)
-		if sql.LastError() and sql.LastError() ~= lastError then
+		if Result == false then
 			DB.Log("MySQL Error: ".. sql.LastError())
 			ErrorNoHalt(sql.LastError() .. " (" .. sqlText .. ")\n")
 			if errorCallback then
