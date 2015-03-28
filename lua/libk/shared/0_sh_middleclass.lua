@@ -1,6 +1,11 @@
 --Kamshak: This is used for the item classes. For examples consult https://github.com/kikito/middleclass/wiki/
 --Modified PrintTable to print instances prettier
 function isObject( t )
+	--Derma Tables
+	if istable( t ) and t.Base and t.Init then
+		return false
+	end
+	--pac parts
 	if pac and istable( t ) and t.IsValid and not t:IsValid( ) then
 		return false
 	end
@@ -17,7 +22,10 @@ function PrintTable ( t, indent, done )
 	MsgN( string.rep (" ", indent - 2) .. "{" )
 	for key, value in pairs (t) do	
 		Msg( string.rep (" ", indent) )
-		if isObject( value ) and not done[value] then
+		if ispanel(value) and not IsValid( value )then
+			Msg( tostring (key) .. " = " )
+			Msg( "NULL Panel(" .. type( value ) .. "\n" )
+		elseif isObject( value ) and not done[value] then
 			done [value] = true
 			Msg( tostring(key) .. ": Object Instance " .. value.class.name .. "\n" );
 			PrintTable (value, indent + 2, done)
@@ -27,11 +35,7 @@ function PrintTable ( t, indent, done )
 			PrintTable (value, indent + 2, done)
 		else
 			Msg( tostring (key) .. " = " )
-			if ispanel(value) and not IsValid( value )then
-				Msg( "NULL Obj(" .. type( value ) .. "\n" )
-			else
-				Msg( tostring(value) .. "\n" )
-			end
+			Msg( tostring(value) .. "\n" )
 		end
 	end
 	MsgN( string.rep (" ", indent - 2) .. "}" )
