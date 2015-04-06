@@ -11,6 +11,7 @@ end
 
 function PANEL:SetImage( name )
 	self.image:SetMaterial( Material( name, "noclamp smooth" ) ) 
+	self.image:SizeToContents()
 end
 
 function PANEL:PerformLayout( )
@@ -20,8 +21,8 @@ function PANEL:PerformLayout( )
 	local min = math.min( mulW, mulH )
 	if min < 1 then
 		self.image:SetSize( self.image.ActualWidth * min, self.image.ActualHeight * min )
-		self.image:Center( )
 	end
+	self.image:Center( )
 end
 
 function PANEL:Paint( w, h )
