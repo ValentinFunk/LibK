@@ -134,12 +134,5 @@ end
 function self:UpdateVersionHash (data)
 	data = data or self:GetData () or ""
 	
-	-- util.CRC stops at the first null byte.
-	-- Replace null bytes with something else.
-	-- And try to ensure that changing a null byte to
-	-- a \1 does not create collisions.
-	data = data:gsub ("\1", "\1\2")
-	data = data:gsub ("%z", "\1\1")
-	
 	self.VersionHash = string.format ("%08x", tonumber (util.CRC (data)) or 0)
 end

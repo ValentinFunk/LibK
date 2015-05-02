@@ -148,8 +148,6 @@ function self:BuildPackFile ()
 	if self.PackFileRevision == self.Revision then return end
 	
 	local startTime = SysTime ()
-	Msg ("GLib.Loader : Building pack file \"" .. self:GetName () .. "\" (" .. table.concat (self.SystemTableNames, ", ") .. ")...")
-	
 	local outBuffer = GLib.StringOutBuffer ()
 	for i = 1, #self.SystemTableNames do
 		outBuffer:String (self.SystemTableNames [i])
@@ -163,7 +161,10 @@ function self:BuildPackFile ()
 	self.CompressedPackFile = nil
 	self.PackFileRevision = self.Revision
 	
-	MsgN (" done (" .. self:GetFileCount () .. " total files, " .. GLib.FormatFileSize (#self.PackFile) .. ", " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
+	-- #YOLO
+	if SysTime () - startTime > 0.015 then
+		MsgN ("GLib.Loader : Built pack file \"" .. self:GetName () .. "\" (" .. table.concat (self.SystemTableNames, ", ") .. ") (" .. self:GetFileCount () .. " total files, " .. GLib.FormatFileSize (#self.PackFile) .. ", " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
+	end
 end
 
 function self:Deserialize (data, compressed, callback)

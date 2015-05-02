@@ -6,7 +6,8 @@ function self:ctor ()
 	self.RunnableThreads = {}
 	self.SleepingWaitingThreads = {}
 	
-	self.CurrentThreadStack = {}
+	self.CurrentThreadStackSet = {}
+	self.CurrentThreadStack    = {}
 	self.CurrentThread = nil
 	
 	self:SetCurrentThread (GLib.Threading.MainThread)
@@ -32,6 +33,8 @@ function self:ctor ()
 				
 				self:SetCurrentThread (thread)
 				
+				thread:DispatchEvent ("ExecutionSliceStarted")
+				
 				local success, error = coroutine.resume (thread:GetCoroutine ())
 				if not success then
 					self:SetCurrentThread (GLib.Threading.MainThread)
@@ -39,6 +42,8 @@ function self:ctor ()
 					thread:Terminate ()
 					ErrorNoHalt ("GLib.Threading.ThreadRunner: Thread " .. thread:GetName () .. " (terminated): " .. error .. "\n")
 				end
+				
+				thread:DispatchEvent ("ExecutionSliceEnded")
 				
 				if thread:IsTerminated () then
 					thread:DispatchEvent ("Terminated")
@@ -98,21 +103,35 @@ function self:GetExecutionSliceEndTime ()
 	return self.ExecutionSliceEndTime
 end
 
+function self:IsCurrentThread (thread)
+	if self.CurrentThreadStackSet [thread] then return true end
+	if self.CurrentThread == thread   then return true end
+	return false
+end
+
 function self:RunThread (thread)
 	if not thread:IsRunnable () then return end
 	if thread:IsMainThread () then return end
+	if self:IsCurrentThread (thread) then
+		GLib.Error ("ThreadRunner:RunThread : This IS the thread that's currently executing, what are you doing?")
+		return
+	end
 	
 	self.ExecutionSliceEndTime = SysTime () + 0.005
 	
 	self:PushCurrentThread (thread)
 	
+	thread:DispatchEvent ("ExecutionSliceStarted")
+	
 	local success, error = coroutine.resume (thread:GetCoroutine ())
 	self:PopCurrentThread ()
 	
 	if not success then
-		thread:Terminate ()
 		ErrorNoHalt ("GLib.Threading.ThreadRunner: Thread " .. thread:GetName () .. " (terminated): " .. error .. "\n")
+		thread:Terminate ()
 	end
+	
+	thread:DispatchEvent ("ExecutionSliceEnded")
 	
 	if thread:IsTerminated () then
 		thread:DispatchEvent ("Terminated")
@@ -124,11 +143,13 @@ function self:PopCurrentThread ()
 	local currentThread = self.CurrentThread
 	
 	self:SetCurrentThread (self.CurrentThreadStack [#self.CurrentThreadStack])
+	self.CurrentThreadStackSet [self.CurrentThreadStack [#self.CurrentThreadStack]] = nil
 	self.CurrentThreadStack [#self.CurrentThreadStack] = nil
 	
 	return currentThread
 end
 function self:PushCurrentThread (thread)
+	self.CurrentThreadStackSet [self.CurrentThread] = true
 	self.CurrentThreadStack [#self.CurrentThreadStack + 1] = self.CurrentThread
 	self:SetCurrentThread (thread)
 end

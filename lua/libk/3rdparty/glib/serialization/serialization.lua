@@ -17,6 +17,8 @@ end
 
 -- Registration
 function GLib.RegisterSerializable (className, constructor)
+	constructor = constructor or GLib.Lua.GetTableValue (className)
+	
 	GLib.Serialization.SerializableRegistry:Register (className, constructor)
 	
 	GLib.GetMetaTable (constructor).__className = className

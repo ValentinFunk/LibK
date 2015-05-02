@@ -33,16 +33,22 @@ if CLIENT then
 			end
 			
 			local addonName = table.concat (args, " ")
-			if not file.IsDir ("addons/" .. addonName .. "/lua", "GAME") then
-				print ("glib_pack: addons/" .. addonName .. "/lua not found.")
+			local addonLuaPath = "addons/" .. addonName .. "/lua"
+			if string.sub (addonName, 1, 3) == "../" then
+				addonName = string.sub (addonName, 4)
+				addonLuaPath = addonName .. "/lua"
+			end
+			
+			if not file.IsDir (addonLuaPath, "GAME") then
+				print ("glib_pack: " .. addonLuaPath .. " not found.")
 				return
 			end
 			
 			local packFileSystem = GLib.Loader.PackFileSystem ()
-			local packFileName = addonName:gsub ("[\\/: %-]", "_")
+			local packFileName = string.gsub (addonName, "[\\/: %-]", "_")
 			packFileSystem:SetName (packFileName)
-			local pathPrefix = "addons/" .. addonName .. "/lua/"
-			GLib.EnumerateFolderRecursive ("addons/" .. addonName .. "/lua", "GAME",
+			local pathPrefix = addonLuaPath
+			GLib.EnumerateFolderRecursive (addonLuaPath, "GAME",
 				function (path)
 					if path:sub (-4):lower () ~= ".lua" then return end
 					packFileSystem:Write (

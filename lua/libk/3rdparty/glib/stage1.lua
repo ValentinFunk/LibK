@@ -13,12 +13,12 @@ if SERVER then
 	GLib.AddCSLuaFile = AddCSLuaFile
 	
 	function GLib.AddCSLuaFolder (folder, recursive)
-		print ("GLib : Adding " .. folder .. "/* to lua pack...")
+		GLib.Debug ("GLib : Adding " .. folder .. "/* to lua pack...")
 		GLib.EnumerateLuaFolder (folder, "LUA", GLib.AddCSLuaFile, recursive)
 	end
 
 	function GLib.AddCSLuaFolderRecursive (folder)
-		print ("GLib : Adding " .. folder .. "/* to lua pack...")
+		GLib.Debug ("GLib : Adding " .. folder .. "/* to lua pack...")
 		GLib.EnumerateLuaFolder (folder, "LUA", GLib.AddCSLuaFile, true)
 	end
 	
@@ -31,16 +31,20 @@ if SERVER then
 	
 	function GLib.AddCSLuaPackFolder (folder, recursive)
 		local startTime = SysTime ()
-		Msg ("GLib : Adding " .. folder .. "/* to virtual lua pack...")
 		GLib.EnumerateLuaFolder (folder, "LUA", GLib.AddCSLuaPackFile, recursive)
-		MsgN (" done (" .. GLib.Loader.PackFileManager:GetFileCount () .. " total files, " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
+		if SysTime () - startTime > 0.5 then
+			MsgN ("GLib : Adding " .. folder .. "/* to virtual lua pack... done (" .. GLib.Loader.PackFileManager:GetFileCount () .. " total files, " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
+		end
+		GLib.Debug ("GLib : Adding " .. folder .. "/* to virtual lua pack... done (" .. GLib.Loader.PackFileManager:GetFileCount () .. " total files, " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
 	end
 
 	function GLib.AddCSLuaPackFolderRecursive (folder)
 		local startTime = SysTime ()
-		Msg ("GLib : Adding " .. folder .. "/* to virtual lua pack...")
 		GLib.EnumerateLuaFolder (folder, "LUA", GLib.AddCSLuaPackFile, true)
-		MsgN (" done (" .. GLib.Loader.PackFileManager:GetFileCount () .. " total files, " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
+		if SysTime () - startTime > 0.5 then
+			MsgN ("GLib : Adding " .. folder .. "/* to virtual lua pack... done (" .. GLib.Loader.PackFileManager:GetFileCount () .. " total files, " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
+		end
+		GLib.Debug ("GLib : Adding " .. folder .. "/* to virtual lua pack... done (" .. GLib.Loader.PackFileManager:GetFileCount () .. " total files, " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
 	end
 	
 	function GLib.AddCSLuaPackSystem (systemTableName)
@@ -102,6 +106,10 @@ function GLib.Debug (message)
 end
 
 function GLib.Enum (enum)
+	if not next (enum) then
+		GLib.Error ("GLib.Enum : This enum appears to be empty!")
+	end
+	
 	GLib.InvertTable (enum)
 	return enum
 end
@@ -161,7 +169,10 @@ end
 
 function GLib.Error (message)
 	message = tostring (message)
-	ErrorNoHalt (" \n\t" .. message .. "\n\t\t" .. GLib.StackTrace (nil, 1):gsub ("\n", "\n\t\t") .. "\n")
+	
+	local fullMessage = " \n\t" .. message .. "\n\t\t" .. string.gsub (GLib.StackTrace (nil, 1), "\n", "\n\t\t") .. "\n"
+	
+	ErrorNoHalt (fullMessage)
 end
 
 function GLib.FindUpValue (func, name)
@@ -174,6 +185,7 @@ function GLib.FindUpValue (func, name)
 	end
 end
 
+local string_format = string.format
 local timeUnits = { "ns", "µs", "ms", "s", "ks", "Ms", "Gs", "Ts", "Ps", "Es", "Zs", "Ys" }
 function GLib.FormatDuration (duration)
 	duration = duration * 1000000000
@@ -183,7 +195,7 @@ function GLib.FormatDuration (duration)
 		duration = duration / 1000
 		unitIndex = unitIndex + 1
 	end
-	return tostring (math.floor (duration * 100 + 0.5) / 100) .. " " .. timeUnits [unitIndex]
+	return string_format ("%.2f %s", duration, timeUnits [unitIndex])
 end
 
 local sizeUnits = { "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB" }
@@ -193,7 +205,7 @@ function GLib.FormatFileSize (size)
 		size = size / 1024
 		unitIndex = unitIndex + 1
 	end
-	return tostring (math.floor (size * 100 + 0.5) / 100) .. " " .. sizeUnits [unitIndex]
+	return string_format ("%.2f %s", size, sizeUnits [unitIndex])
 end
 
 function GLib.GetStackDepth ()
@@ -220,6 +232,7 @@ function GLib.Initialize (systemName, systemTable)
 				local ictorInvoker = metatable and metatable.__call or nil
 				
 				systemTable [k] = {}
+				if v.__static then systemTable [k].__static = true end
 				setmetatable (systemTable [k],
 					{
 						__index = v,
@@ -233,13 +246,15 @@ function GLib.Initialize (systemName, systemTable)
 	GLib.EventProvider (systemTable)
 	systemTable:AddEventListener ("Unloaded", "GLib.Unloader",
 		function ()
-			hook.Remove ("ShutDown", tostring (systemName))
+			if not istable (ULib) then
+				hook.Remove ("ShutDown", tostring (systemName))
+			end
 		end
 	)
 	
 	hook.Add ("ShutDown", tostring (systemName),
 		function ()
-			print ("Unloading " .. systemName .. "...")
+			GLib.Debug ("Unloading " .. systemName .. "...")
 			systemTable:DispatchEvent ("Unloaded")
 		end
 	)
@@ -287,14 +302,18 @@ function GLib.IncludeDirectory (folder, recursive)
 	end
 end
 
-function GLib.InvertTable (tbl)
+function GLib.InvertTable (tbl, out)
+	out = out or tbl
+	
 	local keys = {}
-	for key, Value in pairs (tbl) do
+	for key, _ in pairs (tbl) do
 		keys [#keys + 1] = key
 	end
 	for i = 1, #keys do
-		tbl [tbl [keys [i]]] = keys [i]
+		out [tbl [keys [i]]] = keys [i]
 	end
+	
+	return out
 end
 
 function GLib.NullCallback ()
@@ -408,17 +427,16 @@ end
 -- GLib.Initialize uses this code
 include ("oop.lua")
 include ("timers.lua")
-include ("eventprovider.lua")
+include ("events/eventprovider.lua")
 GLib.Initialize ("GLib", GLib)
 
 -- Now load the rest
-include ("string.lua")
-
 include ("userid.lua")
-include ("playermonitor.lua")
 include ("stringbuilder.lua")
-include ("stringinbuffer.lua")
-include ("stringoutbuffer.lua")
+include ("io/inbuffer.lua")
+include ("io/outbuffer.lua")
+include ("io/stringinbuffer.lua")
+include ("io/stringoutbuffer.lua")
 
 include ("transfers/transfers.lua")
 include ("transfers/inboundtransfer.lua")
@@ -438,15 +456,15 @@ include ("loader/commands.lua")
 -- since GLib.EnumerateFolder calls GLib.Loader.Find.
 GLib.AddCSLuaFile ("glib/glib.lua")
 GLib.AddCSLuaFile ("glib/stage1.lua")
-GLib.AddCSLuaFile ("glib/string.lua")
 GLib.AddCSLuaFile ("glib/oop.lua")
 GLib.AddCSLuaFile ("glib/timers.lua")
 GLib.AddCSLuaFile ("glib/userid.lua")
-GLib.AddCSLuaFile ("glib/eventprovider.lua")
-GLib.AddCSLuaFile ("glib/playermonitor.lua")
+GLib.AddCSLuaFile ("glib/events/eventprovider.lua")
 GLib.AddCSLuaFile ("glib/stringbuilder.lua")
-GLib.AddCSLuaFile ("glib/stringinbuffer.lua")
-GLib.AddCSLuaFile ("glib/stringoutbuffer.lua")
+GLib.AddCSLuaFile ("glib/io/inbuffer.lua")
+GLib.AddCSLuaFile ("glib/io/outbuffer.lua")
+GLib.AddCSLuaFile ("glib/io/stringinbuffer.lua")
+GLib.AddCSLuaFile ("glib/io/stringoutbuffer.lua")
 GLib.AddCSLuaFolderRecursive ("glib/transfers")
 GLib.AddCSLuaFolderRecursive ("glib/resources")
 GLib.AddCSLuaFolderRecursive ("glib/loader")

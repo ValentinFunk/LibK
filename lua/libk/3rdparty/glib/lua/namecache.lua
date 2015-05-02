@@ -30,7 +30,6 @@ function self:ctor ()
 	
 	hook.Add ("GLibSystemLoaded", "GLib.Lua.NameCache",
 		function (systemName)
-			print ("GLib.Lua.NameCache : Queued " .. systemName .. " for indexing.")
 			self:Index (_G [systemName], systemName)
 			
 			if CLIENT then
@@ -70,12 +69,19 @@ end
 
 local tableNameBlacklist =
 {
+	["chathud.lines"] = true,
+	["chathud.markup.chunks"] = true,
 	["chatsounds.ac.words"] = true,
 	["chatsounds.List"] = true,
 	["chatsounds.SortedList"] = true,
 	["chatsounds.SortedList2"] = true,
 	["chatsounds.SortedListKeys"] = true,
 	["GAuth.Groups"] = true,
+	["GCAD.JITInfo"] = true,
+	["GCAD.NavigationGraphEntityList.NavigationGraphNodeEntityList"] = true,
+	["GCAD.NavigationGraphEntityList.NavigationGraphEdgeEntityList"] = true,
+	["GCAD.NavigationGraphRenderer"] = true,
+	["GCAD.RootSceneGraph"] = true,
 	["GLib.Loader.PackFileManager.MergedPackFileSystem.Root"] = true,
 	["GLib.Lua.FunctionCache"] = true,
 	["GCompute.GlobalNamespace"] = true,
@@ -85,6 +91,9 @@ local tableNameBlacklist =
 	["GCompute.Languages.Languages.GLua.EditorHelper.RootNamespace"] = true,
 	["GCompute.TypeSystem"] = true,
 	["pac.ActiveParts"] = true,
+	["pac.OwnedParts"] = true,
+	["pac.UniqueIDParts"] = true,
+	["pac.webaudio.streams"] = true,
 	["pace.example_outfits"] = true,
 	["VFS.RealRoot"] = true,
 	["VFS.Root"] = true
@@ -177,7 +186,7 @@ function self:StartIndexingThread ()
 		return
 	end
 	
-	print ("GLib.Lua.NameCache : Indexing thread started.")
+	GLib.Debug ("GLib.Lua.NameCache : Indexing thread started.")
 	
 	self.Thread = GLib.Threading.Thread ()
 	self.Thread:Start (
@@ -200,7 +209,7 @@ function self:StartIndexingThread ()
 				self:ProcessTable (t, tableName, separator)
 			end
 			
-			print ("GLib.Lua.NameCache : Indexing took " .. GLib.FormatDuration (SysTime () - self.Thread:GetStartTime ()) .. ".")
+			GLib.Debug ("GLib.Lua.NameCache : Indexing took " .. GLib.FormatDuration (SysTime () - self.Thread:GetStartTime ()) .. ".")
 		end
 	)
 end

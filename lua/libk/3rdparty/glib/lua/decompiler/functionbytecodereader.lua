@@ -199,11 +199,7 @@ function self:GetGarbageCollectedConstantCount ()
 end
 
 function self:GetGarbageCollectedConstantEnumerator ()
-	local i = 0
-	return function ()
-		i = i + 1
-		return self.GarbageCollectedConstants [i]
-	end
+	return GLib.ArrayEnumerator (self.GarbageCollectedConstants)
 end
 
 function self:GetGarbageCollectedConstantValue (constantId)
@@ -283,11 +279,7 @@ function self:GetFrameVariable (id)
 end
 
 function self:GetFrameVariableEnumerator ()
-	local i = 0
-	return function ()
-		i = i + 1
-		return self.FrameVariables [i]
-	end
+	return GLib.ArrayEnumerator (self.FrameVariables)
 end
 
 function self:GetFrameVariableName (id)

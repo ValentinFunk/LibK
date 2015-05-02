@@ -1,88 +1,75 @@
 local self = {}
-GLib.Networking.Networkable = GLib.MakeConstructor (self, GLib.Serialization.ISerializable)
+GLib.Networking.Networkable = GLib.MakeConstructor (self, GLib.IDisposable)
 
 --[[
 	Events:
-		NetworkMessage (Networkable sourceNetworkable, SubscriberSet subsriberSet, OutBuffer addressBuffer, OutBuffer outBuffer)
-			Fired when a network message needs to be sent.
+		DispatchPacket (destinationId, OutBuffer packet)
+			Fired when a packet needs to be dispatched.
 ]]
 
 function self:ctor ()
-	self.RevisionId = 0
-	self.State = GLib.Networking.NetworkableState.Unsynchronized
-	self.Authoritative = SERVER and true or false
+	-- NetworkableHost
+	self.NetworkableHost = nil
+	
+	-- Subscribers
 	self.SubscriberSet = nil
 	
 	GLib.EventProvider (self)
 end
 
--- Revision number
-function self:GetRevisionId ()
-	return self.RevisionId
+function self:dtor ()
+	self:SetNetworkableHost (nil)
 end
 
-function self:IncrementRevisionId ()
-	self.RevisionId = self.RevisionId + 1
-	
-	if self.RevisionId >= 4294967296 then
-		self.RevisionId = 1
-	end
+function self:IsHosting ()
+	return nil
 end
 
-function self:SetRevisionId (revisionId)
-	self.RevisionId = revisionId
-	
-	if self.RevisionId >= 4294967296 then
-		self.RevisionId = 1
-	end
+-- NetworkableHost
+function self:GetNetworkableHost ()
+	return self.NetworkableHost
 end
 
--- State
-function self:GetNetworkableState ()
-	if self:IsAuthoritative () then
-		return GLib.Networking.NetworkableState.Synchronized
+function self:SetNetworkableHost (networkableHost)
+	if self.NetworkableHost == networkableHost then return self end
+	
+	if self.NetworkableHost then
+		self.NetworkableHost:UnregisterNetworkable (self)
 	end
 	
-	return self.State
+	self.NetworkableHost = networkableHost
+	
+	if self.NetworkableHost and
+	   not self.NetworkableHost:IsNetworkableRegistered (self) then
+		self.NetworkableHost:RegisterNetworkable (self)
+	end
+	
+	return self
 end
 
 -- Subscribers
-function self:CreateSubscriberSet ()
-	self.SubscriberSet = GLib.SubscriberSet ()
-end
-
 function self:GetSubscriberSet ()
 	return self.SubscriberSet
 end
 
--- Networking
-function self:IsAuthoritative ()
-	return self.Authoritative
-end
-
-function self:IsClient ()
-	return not self:IsAuthoritative ()
-end
-
-function self:IsNetworkableContainer ()
-	return false
-end
-
--- Handles a message that was caused to be sent by the NetworkMessage event.
-function self:HandleMessage (sourceId, inBuffer)
-	GLib.Error ("Networkable:HandleMessage : Not implemented.")
-end
-
--- Dispatches a network message associated with this Networkable
-function self:NetworkMessage (outBuffer)
-	local addressBuffer = GLib.Net.OutBuffer ()
-	addressBuffer:String ("")
+function self:SetSubscriberSet (subscriberSet)
+	if self.SubscriberSet == subscriberSet then return self end
 	
-	if type (outBuffer) == "string" then
-		local messageType = outBuffer
-		outBuffer = GLib.Net.OutBuffer ()
-		outBuffer:String (messageType)
-	end
+	self.SubscriberSet = subscriberSet
 	
-	self:DispatchEvent ("NetworkMessage", self, self:GetSubscriberSet (), addressBuffer, outBuffer)
+	return self
+end
+
+-- Packets
+function self:DispatchPacket (destinationId, packet)
+	destinationId = destinationId or self.SubscriberSet
+	
+	self:DispatchEvent ("DispatchPacket", destinationId, packet)
+end
+
+function self:HandlePacket (sourceId, inBuffer)
+end
+
+function self:HandleRemoteDestruction ()
+	self:dtor ()
 end

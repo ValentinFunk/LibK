@@ -1,13 +1,21 @@
 GLib.Resources = {}
 GLib.Resources.Resources = {}
 
+local DEBUG = false
+
+local function DebugPrint (...)
+	if not DEBUG then return end
+	
+	print (...)
+end
+
 function GLib.Resources.Get (namespace, id, versionHashOrCallback, callback)
 	namespace = namespace or ""
 	
 	local versionHash = ""
-	if type (versionHashOrCallback) == "string" then
+	if isstring (versionHashOrCallback) then
 		versionHash = versionHashOrCallback
-	elseif type (versionHashOrCallback) == "function" then
+	elseif isfunction (versionHashOrCallback) then
 		callback = versionHashOrCallback
 	end
 	callback = callback or GLib.NullCallback
@@ -37,7 +45,7 @@ function GLib.Resources.Get (namespace, id, versionHashOrCallback, callback)
 		
 		-- Check if the resource is cached.
 		if GLib.Resources.ResourceCache:IsResourceCached (namespace, id, versionHash) then
-			print ("GLib.Resources : Using cached resource " .. namespace .. "/" .. id .. " (" .. versionHash .. ").")
+			DebugPrint ("GLib.Resources : Using cached resource " .. namespace .. "/" .. id .. " (" .. versionHash .. ").")
 			resource:SetLocalPath ("data/" .. GLib.Resources.ResourceCache:GetCachePath (namespace, id, versionHash))
 			resource:SetState (GLib.Resources.ResourceState.Available)
 			
@@ -54,7 +62,7 @@ function GLib.Resources.Get (namespace, id, versionHashOrCallback, callback)
 		outBuffer:String (versionHash or "")
 		
 		-- Send transfer request
-		print ("GLib.Resources : Requesting resource " .. namespace .. "/" .. id .. "...")
+		DebugPrint ("GLib.Resources : Requesting resource " .. namespace .. "/" .. id .. "...")
 		local transfer = GLib.Transfers.Request ("Server", "GLib.Resources", outBuffer:GetString ())
 		transfer:AddEventListener ("Finished",
 			function (_)
@@ -67,7 +75,7 @@ function GLib.Resources.Get (namespace, id, versionHashOrCallback, callback)
 				local compressed = inBuffer:LongString ()
 				local data = util.Decompress (compressed)
 				
-				print ("GLib.Resources : Received resource " .. namespace .. "/" ..id .. " (" .. GLib.FormatFileSize (#compressed) .. " decompressed to " .. GLib.FormatFileSize (#data) .. " in " .. GLib.FormatDuration (SysTime () - startTime) .. ").")
+				DebugPrint ("GLib.Resources : Received resource " .. namespace .. "/" ..id .. " (" .. GLib.FormatFileSize (#compressed) .. " decompressed to " .. GLib.FormatFileSize (#data) .. " in " .. GLib.FormatDuration (SysTime () - startTime) .. ").")
 				
 				if resource:IsCacheable () then
 					GLib.Resources.ResourceCache:CacheResource (resource:GetNamespace (), resource:GetId (), resource:GetVersionHash (), data)
@@ -80,7 +88,7 @@ function GLib.Resources.Get (namespace, id, versionHashOrCallback, callback)
 		)
 		transfer:AddEventListener ("RequestRejected",
 			function (_, rejectionData)
-				print ("GLib.Resources : Request for resource " .. namespace .. "/" .. id .. " has been rejected.")
+				DebugPrint ("GLib.Resources : Request for resource " .. namespace .. "/" .. id .. " has been rejected.")
 				resource:SetState (GLib.Resources.ResourceState.Unavailable)
 			end
 		)
@@ -102,7 +110,7 @@ function GLib.Resources.RegisterData (namespace, id, data)
 	if not resource then
 		resource = GLib.Resources.Resource (namespace, id)
 		GLib.Resources.Resources [namespace .. "/" .. id] = resource
-		print ("GLib.Resources : Resource " .. namespace .. "/" .. id .. " registered (" .. GLib.FormatFileSize (#data) .. ").")
+		DebugPrint ("GLib.Resources : Resource " .. namespace .. "/" .. id .. " registered (" .. GLib.FormatFileSize (#data) .. ").")
 	end
 	
 	resource:SetData (data)
@@ -118,7 +126,7 @@ function GLib.Resources.RegisterFile (namespace, id, localPath)
 	if not resource then
 		resource = GLib.Resources.Resource (namespace, id)
 		GLib.Resources.Resources [namespace .. "/" .. id] = resource
-		print ("GLib.Resources : Resource " .. namespace .. "/" .. id .. " registered (" .. localPath .. ").")
+		DebugPrint ("GLib.Resources : Resource " .. namespace .. "/" .. id .. " registered (" .. localPath .. ").")
 	end
 	
 	resource:SetLocalPath (localPath)
@@ -139,11 +147,11 @@ GLib.Transfers.RegisterRequestHandler ("GLib.Resources",
 		if not resource then
 			-- Resource not found.
 			-- I'm sorry, Dave. I'm afraid I can't do that.
-			print ("GLib.Resources : Rejecting resource request for " .. namespace .. "/" .. id .. " from " .. userId .. ".")
+			DebugPrint ("GLib.Resources : Rejecting resource request for " .. namespace .. "/" .. id .. " from " .. userId .. ".")
 			return false
 		end
 		
-		-- print ("GLib.Resources : Sending resource " .. namespace .. "/" .. id .. " to " .. userId .. ".")
+		DebugPrint ("GLib.Resources : Sending resource " .. namespace .. "/" .. id .. " to " .. userId .. ".")
 		local outBuffer = GLib.StringOutBuffer (data)
 		outBuffer:String (namespace)
 		outBuffer:String (id)
@@ -178,7 +186,7 @@ GLib.Transfers.RegisterInitialPacketHandler ("GLib.Resources",
 			
 			-- We've got the resource cached locally.
 			-- Cancel the transfer.
-			print ("GLib.Resources : Resource " .. namespace .. "/" .. id .. " found in local cache, cancelling resource download.")
+			DebugPrint ("GLib.Resources : Resource " .. namespace .. "/" .. id .. " found in local cache, cancelling resource download.")
 			return false
 		end
 	end

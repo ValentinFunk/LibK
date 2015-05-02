@@ -1,5 +1,5 @@
 local self = {}
-GLib.Net.OutBuffer = GLib.MakeConstructor (self)
+GLib.Net.OutBuffer = GLib.MakeConstructor (self, GLib.OutBuffer)
 
 function self:ctor ()
 	self.Data = {}
@@ -51,7 +51,9 @@ end
 
 function self:Bytes (data, length)
 	length = length or #data
-	data = string.sub (data, 1, length - 1)
+	length = math.min (length, #data)
+	
+	data = string.sub (data, 1, length)
 	self.Data [self.NextDataId] = data
 	self.Types [self.NextDataId] = GLib.Net.DataType.Bytes
 	self.NextDataId = self.NextDataId + 1

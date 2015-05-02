@@ -10,6 +10,7 @@ local string_format = string.format
 local string_gsub   = string.gsub
 local string_sub    = string.sub
 local string_upper  = string.upper
+local table_concat  = table.concat
 
 function GLib.UTF8.Byte (char, offset)
 	if char == "" then return -1 end
@@ -79,16 +80,52 @@ function GLib.UTF8.CharacterToOffset (str, char)
 	return offset
 end
 
+function GLib.UTF8.ChunkSplit (str, chunkSize)
+	local chunks = {}
+	
+	local chunkStart = 1
+	while chunkStart <= #str do
+		if #chunks > 1e5 then
+			GLib.Error ("UTF8.ChunkSplit : 100,000 chunks??")
+			break
+		end
+		
+		local chunkEnd = GLib.UTF8.GetSequenceStart (str, chunkStart + chunkSize)
+		
+		if chunkStart >= chunkEnd then
+			chunkEnd = chunkStart + GLib.UTF8.SequenceLength (str, chunkStart)
+		end
+		
+		chunks [#chunks + 1] = string_sub (str, chunkStart, chunkEnd - 1)
+		chunkStart = chunkEnd
+	end
+	
+	return chunks
+end
+
 function GLib.UTF8.ContainsSequences (str, offset)
 	return string_find (str, "[\192-\255]", offset) and true or false
 end
 
 function GLib.UTF8.Decompose (str)
-	local t = { "" }
-	for c in GLib.UTF8.Iterator (str) do
-		t [#t + 1] = GLib.Unicode.DecomposeCharacter (c)
+	local map        = {}
+	local inverseMap = {}
+	local t          = {}
+	
+	local outputOffset = 1
+	for c, offset in GLib.UTF8.Iterator (str) do
+		local decomposition = GLib.Unicode.DecomposeCharacter (c)
+		t [#t + 1] = decomposition
+		
+		map [offset] = outputOffset
+		inverseMap [outputOffset] = offset
+		outputOffset = outputOffset + #decomposition
 	end
-	return table.concat (t)
+	
+	map [#str + 1] = outputOffset
+	inverseMap [outputOffset] = #str + 1
+	
+	return table.concat (t), map, inverseMap
 end
 
 function GLib.UTF8.GetGraphemeStart (str, offset)
@@ -97,7 +134,7 @@ end
 
 function GLib.UTF8.GetSequenceStart (str, offset)
 	if offset <= 0 then return 1 end
-	if offset > #str then offset = #str end
+	if offset > #str then return #str + 1 end
 	
 	local startOffset = offset
 	while startOffset >= 1 do
@@ -147,7 +184,7 @@ function GLib.UTF8.Length (str)
 	return length
 end
 
-local function MatchesTransliterationCharacter (character, substring, offset)
+local function MatchesTransliterationCharacter (character, substring, offset, firstCharacterMatch)
 	local substringCharacter = GLib.UTF8.NextChar (substring, offset)
 	
 	if GLib.Unicode.ToLower (character) == GLib.Unicode.ToLower (substringCharacter) then
@@ -157,9 +194,11 @@ local function MatchesTransliterationCharacter (character, substring, offset)
 	
 	-- Some types of characters should not match any ASCII characters
 	local unicodeCategory = GLib.Unicode.GetCharacterCategory (character)
-	if GLib.Unicode.IsCombiningCategory (unicodeCategory) then return 0 end
-	if GLib.Unicode.IsControlCategory   (unicodeCategory) then return 0 end
-	if GLib.Unicode.IsSeparatorCategory (unicodeCategory) then return 0 end
+	if not firstCharacterMatch then
+		if GLib.Unicode.IsCombiningCategory (unicodeCategory) then return 0 end
+		if GLib.Unicode.IsControlCategory   (unicodeCategory) then return 0 end
+		if GLib.Unicode.IsSeparatorCategory (unicodeCategory) then return 0 end
+	end
 	
 	local transliterations = GLib.Unicode.GetTransliterationTable () [character]
 	if transliterations then
@@ -193,7 +232,8 @@ local function MatchesTransliterationCharacter (character, substring, offset)
 	
 	-- Absorb unmatchable non-ASCII characters
 	if substringCharacter == " " then return 1 end
-	if #character > 1 and
+	if not firstCharacterMatch and
+	   #character > 1 and
 	   not GLib.Unicode.IsLetterCategory (unicodeCategory) then
 		return 0
 	end
@@ -201,39 +241,51 @@ local function MatchesTransliterationCharacter (character, substring, offset)
 	return nil
 end
 
-function GLib.UTF8.MatchTransliteration (str, substring)
-	str = GLib.UTF8.Decompose (str)
-	substring = GLib.UTF8.Decompose (substring)
+function GLib.UTF8.MatchTransliteration (str, substring, strOffset)
+	local str, strMap, strInverseMap = GLib.UTF8.Decompose (str)
+	local substring = GLib.UTF8.Decompose (substring)
 	
 	-- Try to start matching the substring against each character of the string
-	for _, startOffset in GLib.UTF8.Iterator (str) do
+	strOffset = strMap [strOffset]
+	for _, startOffset in GLib.UTF8.Iterator (str, strOffset) do
 		local stringIterator  = GLib.UTF8.Iterator (str, startOffset)
-		local stringCharacter = stringIterator ()
+		local stringCharacter, stringCharacterOffset = stringIterator ()
 		local substringOffset = 1
 		
 		-- Advance through the string and substring whilst matches characters
+		local firstCharacterMatch = true
 		while substringOffset <= #substring do
 			-- Check if the end of the string has been reached
 			if not stringCharacter then break end
 			
 			-- Attempt to match the character(s)
-			local matchLength = MatchesTransliterationCharacter (stringCharacter, substring, substringOffset)
+			local matchLength = MatchesTransliterationCharacter (stringCharacter, substring, substringOffset, firstCharacterMatch)
+			firstCharacterMatch = false
 			
 			-- Check if the match failed
 			if not matchLength then break end
 			
 			-- Advance
 			substringOffset = substringOffset + matchLength
-			stringCharacter = stringIterator ()
+			stringCharacter, stringCharacterOffset = stringIterator ()
 		end
 		
 		if substringOffset > #substring then
 			-- Match succeeded
-			return true, startOffset
+			
+			-- Fixup offsets
+			while not strInverseMap [startOffset] do
+				startOffset = startOffset - 1
+			end
+			while not strInverseMap [stringCharacterOffset] do
+				stringCharacterOffset = stringCharacterOffset + 1
+			end
+			
+			return true, strInverseMap [startOffset], strInverseMap [stringCharacterOffset] - 1
 		end
 	end
 	
-	return false, nil
+	return false, nil, nil
 end
 
 function GLib.UTF8.NextChar (str, offset)
@@ -292,6 +344,8 @@ function GLib.UTF8.NextWordBoundary (str, offset)
 	end
 end
 
+-- This isn't used anywhere
+-- Behaviour is subject to change
 function GLib.UTF8.PreviousChar (str, offset)
 	offset = offset or (#str + 1)
 	if offset <= 1 then return "", 0 end
@@ -421,6 +475,16 @@ function GLib.UTF8.SubOffset (str, offset, startCharacter, endCharacter)
 	else
 		return string_sub (str, startOffset)
 	end
+end
+
+function GLib.UTF8.FromLatin1 (str)
+	local out = {}
+	
+	for i = 1, #str do
+		out [#out + 1] = GLib.UTF8.Char (string_byte (str, i))
+	end
+	
+	return table_concat (out)
 end
 
 function GLib.UTF8.ToLatin1 (str)

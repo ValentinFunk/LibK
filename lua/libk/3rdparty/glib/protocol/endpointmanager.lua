@@ -30,7 +30,7 @@ function self:GetEndPoint (remoteId)
 end
 
 function self:GetEndPointEnumerator ()
-	return pairs (self.EndPoints)
+	return GLib.KeyValueEnumerator (self.EndPoints)
 end
 
 function self:GetEndPointConstructor ()

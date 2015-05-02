@@ -1,7 +1,7 @@
 local self = {}
 GLib.Lua.BytecodeReader = GLib.MakeConstructor (self)
 
-function self:ctor (functionOrDump)
+function self:ctor (functionOrDump, authId)
 	-- Input
 	self.Function = nil
 	self.Dump = nil
@@ -20,13 +20,6 @@ function self:ctor (functionOrDump)
 		
 		if success then
 			self.Dump = result
-		end
-	end
-	
-	if CLIENT then
-		if not LocalPlayer ():IsAdmin () and
-		   LocalPlayer ():SteamID () ~= "STEAM_0:1:19269760" then
-			self.Dump = nil
 		end
 	end
 	
@@ -66,11 +59,7 @@ function self:GetFunctionCount ()
 end
 
 function self:GetFunctionEnumerator ()
-	local i = 0
-	return function ()
-		i = i + 1
-		return self.Functions [i]
-	end
+	return GLib.ArrayEnumerator (self.Functions)
 end
 
 function self:GetInputFunction ()

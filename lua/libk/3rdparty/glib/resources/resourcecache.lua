@@ -45,6 +45,8 @@ function self:CacheResource (namespace, id, versionHash, data)
 	file.CreateDir ("glib/resourcecache/" .. string.lower (namespace))
 	
 	local f = file.Open (self:GetCachePath (namespace, id, versionHash), "wb", "DATA")
+	if not f then return end
+	
 	f:Write (data)
 	f:Close ()
 	
@@ -71,7 +73,8 @@ function self:GetCachePath (namespace, id, versionHash)
 end
 
 function self:IsResourceCached (namespace, id, versionHash)
-	return file.Exists ("data/" .. self:GetCachePath (namespace, id, versionHash), "GAME")
+	return file.Exists ("data/" .. self:GetCachePath (namespace, id, versionHash), "GAME") and
+	       string.format ("%08x", tonumber (util.CRC (file.Read ("data/" .. self:GetCachePath (namespace, id, versionHash), "GAME"))) or 0) == versionHash
 end
 
 function self:PruneCache ()
@@ -89,6 +92,14 @@ function self:PruneCache ()
 				file.Delete ("glib/resourcecache/" .. folderName .. "/" .. fileName)
 				print ("GLib.Resources : Cached resource glib/resourcecache/" .. folderName .. "/" .. fileName .. " has expired, deleting...")
 			end
+		end
+	end
+	
+	-- Remove nonexistant files from the last access times table
+	for dataPath, _ in pairs (self.LastAccessTimes) do
+		if not file.Exists ("data/" .. dataPath, "GAME") then
+			self.LastAccessTimes [dataPath] = nil
+			self:FlagSaveNeeded ()
 		end
 	end
 end

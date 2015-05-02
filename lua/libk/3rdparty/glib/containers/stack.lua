@@ -13,6 +13,12 @@ function self:Clear ()
 	self.Top = nil
 end
 
+--- Returns the item at the top of the stack
+-- @return The item at the top of the stack
+function self:GetTop ()
+	return self.Top
+end
+
 --- Returns whether the stack is empty
 -- @return true if the stack is empty
 function self:IsEmpty ()
@@ -42,6 +48,13 @@ end
 -- @param value The item to be pushed onto the top of the stack
 function self:Push (value)
 	self.Count = self.Count + 1
+	self.Items [self.Count] = value
+	self.Top = value
+end
+
+--- Sets the item at the top of the stack
+-- @param value The item to replace the top of the stack
+function self:SetTop (value)
 	self.Items [self.Count] = value
 	self.Top = value
 end

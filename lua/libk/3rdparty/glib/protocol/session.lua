@@ -72,7 +72,7 @@ function self:HasQueuedPackets ()
 end
 
 function self:HasTimedOut ()
-	return SysTime () - self.LastActivityTime > 5
+	return SysTime () - self.LastActivityTime > 120
 end
 
 function self:IsClosing ()

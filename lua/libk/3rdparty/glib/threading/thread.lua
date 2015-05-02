@@ -5,7 +5,11 @@ GLib.Threading.Thread = GLib.MakeConstructor (self, GLib.Threading.IWaitable)
 	StateChanged (ThreadState state, bool suspended)
 		Fired when this Thread's state has changed.
 	Terminated ()
-		Fired when this Thread has terminated
+		Fired when this Thread has terminated.
+	ExecutionSliceEnded ()
+		Fired when this Thread's execution slice has ended.
+	ExecutionSliceStarted ()
+		Fired when this Thread's execution slice has started.
 ]]
 
 function self:ctor ()
@@ -17,6 +21,9 @@ function self:ctor ()
 	self.Coroutine = nil
 	
 	self.YieldTimeSliceAllowed = true
+	
+	-- Thread local storage
+	self.ThreadLocalStorage = nil
 	
 	-- State
 	self.State = GLib.Threading.ThreadState.Unstarted
@@ -154,6 +161,17 @@ function self:SetThreadRunner (threadRunner)
 	end
 	
 	return self
+end
+
+-- Thread local storage
+function self:GetThreadLocalStorage ()
+	self.ThreadLocalStorage = self.ThreadLocalStorage or {}
+	return self.ThreadLocalStorage
+end
+
+function self:GetTLS ()
+	self.ThreadLocalStorage = self.ThreadLocalStorage or {}
+	return self.ThreadLocalStorage
 end
 
 -- ThreadRunner
@@ -329,6 +347,10 @@ function self:WaitForMultipleObjects (...)
 				self.WaitObjects [waitable] = nil
 				if next (self.WaitObjects) == nil then
 					self:SetState (GLib.Threading.ThreadState.Running)
+					
+					if not GLib.Threading.ThreadRunner:IsCurrentThread (self) then
+						GLib.Threading.ThreadRunner:RunThread (self)
+					end
 				end
 			end
 		)

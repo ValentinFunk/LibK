@@ -1,5 +1,5 @@
 local self = {}
-GLib.Containers.LinkedList = GLib.MakeConstructor (self)
+GLib.Containers.LinkedList = GLib.MakeConstructor (self, GLib.Containers.ICollection)
 
 function self:ctor ()
 	self.LinkedList     = GLib.Containers.LinkedList
@@ -10,6 +10,52 @@ function self:ctor ()
 	self.Count = 0
 end
 
+-- ICollection
+function self:Add (item)
+	return self:AddLast (item)
+end
+
+function self:Clear ()
+	self.First = nil
+	self.Last = nil
+	self.Count = 0
+end
+
+function self:Contains (item)
+	for value in self:GetEnumerator () do
+		if value == item then return true end
+	end
+	
+	return false
+end
+
+function self:GetCount ()
+	return self.Count
+end
+
+function self:GetEnumerator ()
+	local node = self.First
+	return function ()
+		local ret = node
+		node = node and node.Next
+		return ret and ret.Value
+	end
+end
+
+function self:IsEmpty ()
+	return self.Count == 0
+end
+
+function self:Remove (item)
+	for linkedListNode in self:GetNodeEnumerator () do
+		if linkedListNode.Value == item then
+			self:RemoveNode (linkedListNode)
+			break
+		end
+	end
+end
+
+-- LinkedList
 function self:AddAfter (node, value)
 	if node == nil then return self:AddFirst (value) end
 	
@@ -122,12 +168,6 @@ function self:Append (linkedList)
 	linkedList.Count = 0
 end
 
-function self:Clear ()
-	self.First = nil
-	self.Last = nil
-	self.Count = 0
-end
-
 function self:ComputeMemoryUsage (memoryUsageReport, poolName)
 	memoryUsageReport = memoryUsageReport or GLib.MemoryUsageReport ()
 	if memoryUsageReport:IsCounted (self) then return end
@@ -152,7 +192,7 @@ end
 
 --- Returns an iterator which returns LinkedListNodes in this LinkedList. Deletion of the last LinkedListNode returned by the iterator is allowed.
 -- @return An iterator which returns LinkedListNodes in this LinkedList
-function self:GetEnumerator ()
+function self:GetNodeEnumerator ()
 	local node = self.First
 	return function ()
 		local ret = node
@@ -196,11 +236,7 @@ function self:InsertNodeBefore (postInsertionNode, insertionNode)
 	self.Count = self.Count + 1
 end
 
-function self:IsEmpty ()
-	return self.Count == 0
-end
-
-function self:Remove (linkedListNode)
+function self:RemoveNode (linkedListNode)
 	if not linkedListNode then
 		return
 	end

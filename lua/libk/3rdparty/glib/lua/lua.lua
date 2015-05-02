@@ -59,10 +59,16 @@ function GLib.Lua.CreateShadowTable (t)
 end
 
 function GLib.Lua.GetFunctionName (func)
+	if not GLib.Lua.NameCache               then return nil end
+	if not GLib.Lua.NameCache.GetObjectName then return nil end
+	
 	return GLib.Lua.NameCache:GetFunctionName (func)
 end
 
 function GLib.Lua.GetObjectName (object)
+	if not GLib.Lua.NameCache               then return nil end
+	if not GLib.Lua.NameCache.GetObjectName then return nil end
+	
 	return GLib.Lua.NameCache:GetObjectName (object)
 end
 
@@ -118,6 +124,10 @@ function GLib.Lua.GetTableValue (valueName)
 	return t [valueName], t, tableName, valueName
 end
 
+function GLib.Lua.IsNativeFunction (f)
+	return debug.getinfo (f).what == "C"
+end
+
 local keywords =
 {
 	["if"]       = true,
@@ -143,6 +153,7 @@ local keywords =
 }
 
 function GLib.Lua.IsValidVariableName (name)
+	if not isstring (name) then return false end
 	if not keywords [name] and string.match (name, "^[_a-zA-Z][_a-zA-Z0-9]*$") then return true end
 	return false
 end
@@ -190,6 +201,11 @@ local TypeFormatters =
 		local entityIndex = value:EntIndex ()
 		if entityIndex >= 0 then
 			local entityInfo = value:GetClass ()
+			
+			if value:IsPlayer () then
+				entityInfo = value:SteamID () .. ", " .. value:GetName ()
+			end
+			
 			return "Entity (" .. entityIndex .. ") --[[ " .. entityInfo .. " ]]"
 		end
 		
@@ -216,9 +232,42 @@ function ToLuaString (value, stringBuilder)
 	local valueType = type (value)
 	
 	local name = GLib.Lua.GetObjectName (value)
-	if name then return name end
 	
 	-- TODO: Handle tables and functions
+	if type (value) == "function" then
+		local functionInfo = GLib.Lua.Function (value)
+		if functionInfo:IsNative () then
+			if name then return name end
+		else
+			local sourceFile = functionInfo:GetFilePath ()
+			local data = file.Read (sourceFile, "GAME")
+			data = data or file.Read (sourceFile, "LUA")
+			data = data or file.Read (sourceFile, SERVER and "LSV" or "LCL")
+			
+			if data then
+				-- Normalize line endings
+				data = string.gsub (data, "\r\n", "\n")
+				data = string.gsub (data, "\r", "\n")
+				
+				local startLine = functionInfo:GetStartLine ()
+				local endLine   = functionInfo:GetEndLine ()
+				
+				local lines = string.Split (data, "\n")
+				if endLine <= #lines then
+					local code = {}
+					for i = startLine, endLine do
+						code [#code + 1] = lines [i]
+					end
+					code = table.concat (code, "\n")
+					return code
+				end
+			end
+			
+			return GLib.Lua.BytecodeReader (value):ToString ()
+		end
+	else
+		if name then return name end
+	end
 	
 	return ToCompactLuaString (value, stringBuilder)
 end

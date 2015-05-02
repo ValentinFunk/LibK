@@ -1,5 +1,5 @@
 local self = {}
-GLib.Containers.OrderedSet = GLib.MakeConstructor (self)
+GLib.Containers.OrderedSet = GLib.MakeConstructor (self, GLib.Containers.ICollection)
 
 function self:ctor ()
 	self.Count = 0
@@ -8,6 +8,7 @@ function self:ctor ()
 	self.ItemSet = {}
 end
 
+-- ICollection
 function self:Add (item)
 	if self:Contains (item) then return self end
 	
@@ -29,20 +30,27 @@ function self:Contains (item)
 	return self.ItemSet [item] ~= nil
 end
 
-function self:Get (index)
-	return self.Items [index]
-end
-
 function self:GetCount ()
 	return self.Count
 end
 
 function self:GetEnumerator ()
-	local i = 0
-	return function ()
-		i = i + 1
-		return self.Items [i]
-	end
+	return GLib.ArrayEnumerator (self.Items)
+end
+
+function self:IsEmpty ()
+	return self.Count == 0
+end
+
+function self:Remove (item)
+	if not self:Contains (item) then return end
+	
+	self:RemoveAt (self:IndexOf (item))
+end
+
+-- OrderedSet
+function self:Get (index)
+	return self.Items [index]
 end
 
 function self:IndexOf (item)
@@ -60,12 +68,6 @@ function self:Insert (index, item)
 	self.ItemSet [item] = true
 	
 	return self
-end
-
-function self:Remove (item)
-	if not self:Contains (item) then return end
-	
-	self:RemoveAt (self:IndexOf (item))
 end
 
 function self:RemoveAt (index)

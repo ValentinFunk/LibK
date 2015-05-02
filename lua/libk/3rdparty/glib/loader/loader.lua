@@ -217,6 +217,7 @@ function GLib.Loader.RunPackFile (executionTarget, packFileSystem, callback)
 			ENT.Base = "base_anim"
 			ENT.ClassName = className
 			
+			-- Run file
 			if packFileSystem:Exists ("entities/" .. className .. "/" .. prefix .. "init.lua") then
 				GLib.Loader.Include ("entities/" .. className .. "/" .. prefix .. "init.lua")
 			elseif packFileSystem:Exists ("entities/" .. className .. "/shared.lua") then
@@ -224,6 +225,8 @@ function GLib.Loader.RunPackFile (executionTarget, packFileSystem, callback)
 			end
 			
 			scripted_ents.Register (ENT, ENT.ClassName, true)
+			
+			-- Update existing entities
 			for _, ent in ipairs (ents.FindByClass (ENT.ClassName)) do
 				table.Merge (ent:GetTable (), ENT)
 			end
@@ -234,24 +237,38 @@ function GLib.Loader.RunPackFile (executionTarget, packFileSystem, callback)
 		-- Weapons
 		local _, folders = packFileSystem:Find ("weapons/*")
 		for _, className in ipairs (folders) do
+			local success = false
 			local _SWEP = SWEP
 			SWEP = {}
 			SWEP.Primary   = {}
 			SWEP.Secondary = {}
 			SWEP.ClassName = className
 			
+			-- Run file
 			if packFileSystem:Exists ("weapons/" .. className .. "/" .. prefix .. "init.lua") then
+				success = true
 				GLib.Loader.Include ("weapons/" .. className .. "/" .. prefix .. "init.lua")
 			elseif packFileSystem:Exists ("weapons/" .. className .. "/shared.lua") then
+				success = true
 				GLib.Loader.Include ("weapons/" .. className .. "/shared.lua")
 			end
 			
-			weapons.Register (SWEP, SWEP.ClassName, true)
-			for _, ent in ipairs (ents.FindByClass (SWEP.ClassName)) do
-				table.Merge (ent:GetTable (), SWEP)
+			if success then
+				weapons.Register (SWEP, SWEP.ClassName, true)
+				
+				-- Update existing entities
+				for _, ent in ipairs (ents.FindByClass (SWEP.ClassName)) do
+					table.Merge (ent:GetTable (), SWEP)
+				end
 			end
 			
 			SWEP = _SWEP
+		end
+		
+		-- Events
+		for i = 1, packFileSystem:GetSystemTableCount () do
+			local systemTableName = packFileSystem:GetSystemTableName (i)
+			GLib:DispatchEvent ("PackFileLoaded", systemTableName)
 		end
 		
 		callback (true)
@@ -279,8 +296,10 @@ function GLib.Loader.RunSerializedPackFile (executionTarget, serializedPackFile,
 					fileSize = fileSize .. " decompressed to " .. GLib.FormatFileSize (decompressedSize)
 				end
 				
-				MsgN ("GLib.Loader : Running pack file \"" .. packFileSystem:GetName () .. "\", deserialization took " .. GLib.FormatDuration (SysTime () - startTime) .. " (" .. packFileSystem:GetFileCount () .. " total files, " .. fileSize .. ").")
+				Msg ("GLib.Loader : Running pack file \"" .. packFileSystem:GetName () .. "\", deserialization took " .. GLib.FormatDuration (SysTime () - startTime) .. " (" .. packFileSystem:GetFileCount () .. " total files, " .. fileSize .. ")...")
+				startTime = SysTime ()
 				GLib.Loader.RunPackFile (executionTarget, packFileSystem, callback)
+				MsgN (" took " .. GLib.FormatDuration (SysTime () - startTime) .. ".")
 			end
 		)
 	else

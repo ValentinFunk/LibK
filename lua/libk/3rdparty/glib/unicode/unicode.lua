@@ -63,18 +63,6 @@ function GLib.Unicode.GetCharacterName (...)
 	end
 end
 
-function GLib.Unicode.GetCharacterName (...)
-	local codePoint = GLib.UTF8.Byte (...)
-	if characterNames [codePoint] then
-		return characterNames [codePoint]
-	end
-	if codePoint < 0x010000 then
-		return string.format ("CHARACTER 0x%04x", codePoint)
-	else
-		return string.format ("CHARACTER 0x%06x", codePoint)
-	end
-end
-
 function GLib.Unicode.GetCharacterNameTable ()
 	return characterNames
 end
@@ -357,42 +345,48 @@ local function ParseUnicodeData (unicodeData)
 				-- 14. Lowercase mapping
 				-- 15. Titlecase mapping
 				
-				local bits = string.Split (string.Trim (dataLines [i]), ";")
-				local codePoint = tonumber ("0x" .. (bits [1] or "0")) or 0
+				local line = dataLines [i]
+				line = string.gsub (line, "#.*$", "")
+				line = string.Trim (line)
 				
-				lastCodePoint = codePoint
-				
-				characterNames [codePoint] = bits [2]
-				
-				-- Decomposition
-				if bits [6] and bits [6] ~= "" then
-					local decompositionBits = string.Split (bits [6], " ")
-					local decomposition = ""
-					for i = 1, #decompositionBits do
-						local codePoint = tonumber ("0x" .. decompositionBits [i])
-						if codePoint then
-							decomposition = decomposition .. GLib.UTF8.Char (codePoint)
+				if line ~= "" then
+					local bits = string.Split (line, ";")
+					local codePoint = tonumber ("0x" .. (bits [1] or "0")) or 0
+					
+					lastCodePoint = codePoint
+					
+					characterNames [codePoint] = bits [2]
+					
+					-- Decomposition
+					if bits [6] and bits [6] ~= "" then
+						local decompositionBits = string.Split (bits [6], " ")
+						local decomposition = ""
+						for i = 1, #decompositionBits do
+							local codePoint = tonumber ("0x" .. decompositionBits [i])
+							if codePoint then
+								decomposition = decomposition .. GLib.UTF8.Char (codePoint)
+							end
 						end
+						decompositionMap [GLib.UTF8.Char (codePoint)] = decomposition
 					end
-					decompositionMap [GLib.UTF8.Char (codePoint)] = decomposition
-				end
-				
-				-- Uppercase
-				if bits [13] and bits [13] ~= "" then
-					if bits [13]:find (" ") then print (bits [13]) end
-					uppercaseMap [GLib.UTF8.Char (codePoint)] = GLib.UTF8.Char (tonumber ("0x" .. bits [13]))
-				end
-				
-				-- Lowercase
-				if bits [14] and bits [14] ~= "" then
-					if bits [14]:find (" ") then print (bits [14]) end
-					lowercaseMap [GLib.UTF8.Char (codePoint)] = GLib.UTF8.Char (tonumber ("0x" .. bits [14]))
-				end
-				
-				-- Titlecase
-				if bits [15] and bits [15] ~= "" then
-					if bits [15]:find (" ") then print (bits [15]) end
-					titlecaseMap [GLib.UTF8.Char (codePoint)] = GLib.UTF8.Char (tonumber ("0x" .. bits [15]))
+					
+					-- Uppercase
+					if bits [13] and bits [13] ~= "" then
+						if bits [13]:find (" ") then print (bits [13]) end
+						uppercaseMap [GLib.UTF8.Char (codePoint)] = GLib.UTF8.Char (tonumber ("0x" .. bits [13]))
+					end
+					
+					-- Lowercase
+					if bits [14] and bits [14] ~= "" then
+						if bits [14]:find (" ") then print (bits [14]) end
+						lowercaseMap [GLib.UTF8.Char (codePoint)] = GLib.UTF8.Char (tonumber ("0x" .. bits [14]))
+					end
+					
+					-- Titlecase
+					if bits [15] and bits [15] ~= "" then
+						if bits [15]:find (" ") then print (bits [15]) end
+						titlecaseMap [GLib.UTF8.Char (codePoint)] = GLib.UTF8.Char (tonumber ("0x" .. bits [15]))
+					end
 				end
 				
 				i = i + 1
@@ -423,30 +417,41 @@ timer.Simple (1,
 	end
 )
 
-GLib.Unicode.Characters.CombiningDotAbove        = GLib.UTF8.Char (0x0307)
-GLib.Unicode.Characters.CombiningDiaeresis       = GLib.UTF8.Char (0x0308)
-GLib.Unicode.Characters.EnQuad                   = GLib.UTF8.Char (0x2000)
-GLib.Unicode.Characters.EmQuad                   = GLib.UTF8.Char (0x2001)
-GLib.Unicode.Characters.EnSpace                  = GLib.UTF8.Char (0x2002)
-GLib.Unicode.Characters.EmSpace                  = GLib.UTF8.Char (0x2003)
-GLib.Unicode.Characters.ThreePerEmSpace          = GLib.UTF8.Char (0x2004)
-GLib.Unicode.Characters.FourPerEmSpace           = GLib.UTF8.Char (0x2005)
-GLib.Unicode.Characters.SixPerEmSpace            = GLib.UTF8.Char (0x2006)
-GLib.Unicode.Characters.FigureSpace              = GLib.UTF8.Char (0x2007)
-GLib.Unicode.Characters.PunctuationSpace         = GLib.UTF8.Char (0x2008)
-GLib.Unicode.Characters.ThinSpace                = GLib.UTF8.Char (0x2009)
-GLib.Unicode.Characters.HairSpace                = GLib.UTF8.Char (0x200A)
-GLib.Unicode.Characters.ZeroWidthSpace           = GLib.UTF8.Char (0x200B)
-GLib.Unicode.Characters.ZeroWidthNonJoiner       = GLib.UTF8.Char (0x200C)
-GLib.Unicode.Characters.ZeroWidthJoiner          = GLib.UTF8.Char (0x200D)
-GLib.Unicode.Characters.LeftToRightMark          = GLib.UTF8.Char (0x200E)
-GLib.Unicode.Characters.RightToLeftMark          = GLib.UTF8.Char (0x200F)
-GLib.Unicode.Characters.LineSeparator            = GLib.UTF8.Char (0x2028)
-GLib.Unicode.Characters.ParagraphSeparator       = GLib.UTF8.Char (0x2029)
-GLib.Unicode.Characters.LeftToRightEmbedding     = GLib.UTF8.Char (0x202A)
-GLib.Unicode.Characters.RightToLeftEmbedding     = GLib.UTF8.Char (0x202B)
-GLib.Unicode.Characters.PopDirectionalFormatting = GLib.UTF8.Char (0x202C)
-GLib.Unicode.Characters.LeftToRightOverride      = GLib.UTF8.Char (0x202D)
-GLib.Unicode.Characters.RightToLeftOverride      = GLib.UTF8.Char (0x202E)
-GLib.Unicode.Characters.NarrowNoBreakSpace       = GLib.UTF8.Char (0x202F)
-GLib.Unicode.Characters.WordJoiner               = GLib.UTF8.Char (0x2060)
+GLib.Unicode.Characters.CombiningDotAbove               = GLib.UTF8.Char (0x0307)
+GLib.Unicode.Characters.CombiningDiaeresis              = GLib.UTF8.Char (0x0308)
+GLib.Unicode.Characters.EnQuad                          = GLib.UTF8.Char (0x2000)
+GLib.Unicode.Characters.EmQuad                          = GLib.UTF8.Char (0x2001)
+GLib.Unicode.Characters.EnSpace                         = GLib.UTF8.Char (0x2002)
+GLib.Unicode.Characters.EmSpace                         = GLib.UTF8.Char (0x2003)
+GLib.Unicode.Characters.ThreePerEmSpace                 = GLib.UTF8.Char (0x2004)
+GLib.Unicode.Characters.FourPerEmSpace                  = GLib.UTF8.Char (0x2005)
+GLib.Unicode.Characters.SixPerEmSpace                   = GLib.UTF8.Char (0x2006)
+GLib.Unicode.Characters.FigureSpace                     = GLib.UTF8.Char (0x2007)
+GLib.Unicode.Characters.PunctuationSpace                = GLib.UTF8.Char (0x2008)
+GLib.Unicode.Characters.ThinSpace                       = GLib.UTF8.Char (0x2009)
+GLib.Unicode.Characters.HairSpace                       = GLib.UTF8.Char (0x200A)
+GLib.Unicode.Characters.ZeroWidthSpace                  = GLib.UTF8.Char (0x200B)
+GLib.Unicode.Characters.ZeroWidthNonJoiner              = GLib.UTF8.Char (0x200C)
+GLib.Unicode.Characters.ZeroWidthJoiner                 = GLib.UTF8.Char (0x200D)
+GLib.Unicode.Characters.LeftToRightMark                 = GLib.UTF8.Char (0x200E)
+GLib.Unicode.Characters.RightToLeftMark                 = GLib.UTF8.Char (0x200F)
+GLib.Unicode.Characters.LineSeparator                   = GLib.UTF8.Char (0x2028)
+GLib.Unicode.Characters.ParagraphSeparator              = GLib.UTF8.Char (0x2029)
+GLib.Unicode.Characters.LeftToRightEmbedding            = GLib.UTF8.Char (0x202A)
+GLib.Unicode.Characters.RightToLeftEmbedding            = GLib.UTF8.Char (0x202B)
+GLib.Unicode.Characters.PopDirectionalFormatting        = GLib.UTF8.Char (0x202C)
+GLib.Unicode.Characters.LeftToRightOverride             = GLib.UTF8.Char (0x202D)
+GLib.Unicode.Characters.RightToLeftOverride             = GLib.UTF8.Char (0x202E)
+GLib.Unicode.Characters.NarrowNoBreakSpace              = GLib.UTF8.Char (0x202F)
+GLib.Unicode.Characters.WordJoiner                      = GLib.UTF8.Char (0x2060)
+GLib.Unicode.Characters.InhibitSymmetricSwapping        = GLib.UTF8.Char (0x206A)
+GLib.Unicode.Characters.ActivateSymmetricSwapping       = GLib.UTF8.Char (0x206B)
+GLib.Unicode.Characters.InhibitArabicFormShaping        = GLib.UTF8.Char (0x206C)
+GLib.Unicode.Characters.ActivateArabicFormShaping       = GLib.UTF8.Char (0x206D)
+GLib.Unicode.Characters.NationalDigitShapes             = GLib.UTF8.Char (0x206E)
+GLib.Unicode.Characters.NominalDigitShapes              = GLib.UTF8.Char (0x206F)
+GLib.Unicode.Characters.ByteOrderMark                   = GLib.UTF8.Char (0xFEFF)
+GLib.Unicode.Characters.ZeroWidthNoBreakSpace           = GLib.UTF8.Char (0xFEFF)
+GLib.Unicode.Characters.InterlinearAnnotationAnchor     = GLib.UTF8.Char (0xFFF9)
+GLib.Unicode.Characters.InterlinearAnnotationSeparator  = GLib.UTF8.Char (0xFFFA)
+GLib.Unicode.Characters.InterlinearAnnotationTerminator = GLib.UTF8.Char (0xFFFB)

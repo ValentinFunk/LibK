@@ -61,7 +61,7 @@ net.Receive ("glib_transfer",
 			
 			if not GLib.Transfers.Handlers [channelName] then
 				-- Unknown channel, do not want
-				GLib.Transfer.CancelUnknownTransfer (userId, transferId)
+				GLib.Transfers.CancelUnknownTransfer (userId, transferId)
 				return
 			end
 			

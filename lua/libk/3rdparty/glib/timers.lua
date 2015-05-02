@@ -40,7 +40,7 @@ hook.Add ("Think", "GLib.DelayedCalls",
 		end
 		
 		if SysTime () - startTime > 0.2 and lastCalled then
-			MsgN ("GLib.DelayedCalls : " .. tostring (lastCalled) .. " took " .. ((SysTime () - startTime) * 1000) .. " ms.")
+			MsgN ("GLib.DelayedCalls : " .. tostring (lastCalled) .. " took " .. GLib.FormatDuration (SysTime () - startTime) .. ".")
 			GLib.SlowDelayedCalls [#GLib.SlowDelayedCalls + 1] = lastCalled
 		end
 	end
