@@ -405,7 +405,12 @@ function DatabaseModel:included( class )
 					if obj then
 						instance[relName] = obj
 						if obj.postLoad then
-							table.insert( relationshipPromises, obj:postLoad( ) )
+							local promise = obj:postLoad( )
+							if not promise or not ( promise._IsDeferred or promise._IsPromise ) then
+								KLogf( 1, "[LibK] ERROR! " .. obj.class.name .. ":postLoad( ) does not return a promise!" )
+							else
+								table.insert( relationshipPromises, promise )
+							end
 						end
 					end
 				end
