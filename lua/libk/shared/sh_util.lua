@@ -115,6 +115,131 @@ function LibK.timeDiffString( timestamp )
 	end
 end
 
+
+
+local intervals={
+  {"seconds", 1}, --the "1" should never really get used but
+  {"minutes", 60},
+  {"hours", 60},
+  {"days", 24},
+  {"weeks", 7}
+}
+
+-- From http://lua-users.org/wiki/UnitConversion
+local positions={}
+for i=1,5 do
+  positions[intervals[i][1]]=i
+end
+
+function LibK.ConvertTimeUnits(value, sourceunits, targetunits)
+
+  local sourcei, targeti = positions[sourceunits], positions[targetunits]
+  assert(sourcei and targeti)
+
+  if sourcei<targeti then
+
+    local base=1
+    for i=sourcei+1,targeti do
+      base=base*intervals[i][2]
+    end
+
+    return value/base
+
+  elseif sourcei>targeti then
+
+    local base=1
+    for i=targeti+1,sourcei do
+      base=base*intervals[i][2]
+    end
+
+    return value*base
+
+  else return value end
+end
+
+LibK.TimeUnitMap = {
+	seconds = 1,
+	minutes = 60,
+	hours = 60 * 60,
+	days = 60 * 60 * 24,
+	weeks = 60 * 60 * 24 * 7
+}
+
+function LibK.getDurationInfo( durationInSeconds )
+	local seconds = durationInSeconds
+	if seconds < 60 then
+		if math.floor( seconds ) != 1 then
+			return seconds, "seconds", "seconds"
+		else
+			return seconds, "seconds", "second"
+		end
+	end
+	
+	local minutes = LibK.ConvertTimeUnits(durationInSeconds,"seconds","minutes")
+	if minutes < 60 then
+		if math.floor( minutes ) != 1 then
+			return minutes, "minutes", "minutes"
+		else
+			return minutes, "minutes", "minute"
+		end
+	end
+	
+	local hours = LibK.ConvertTimeUnits(durationInSeconds,"seconds","hours")
+	if hours < 24 then
+		if math.floor( hours ) != 1 then
+			return hours, "hours", "hours"
+		else
+			return hours, "hours", "hour"
+		end
+	end
+	
+	local days = LibK.ConvertTimeUnits(durationInSeconds,"seconds","days")
+	if days < 7 then
+		if math.floor( days ) != 1 then
+			return days, "days", "days"
+		else
+			return days, "days", "day"
+		end
+	end
+	
+	local weeks = LibK.ConvertTimeUnits(durationInSeconds,"seconds","weeks")
+	if math.floor( weeks ) != 1 then
+		return weeks, "weeks", "weeks"
+	else
+		return weeks, "weeks", "week"
+	end
+end
+
+--
+function LibK.getDurationInfo2( seconds )
+	local result = {}
+	
+	repeat
+		local amount, unit, str = LibK.getDurationInfo( seconds )
+		seconds = seconds - math.floor( amount ) * LibK.TimeUnitMap[unit]
+		table.insert( result, { amount = math.floor( amount ), unit = unit, string = str } )
+	until seconds <= 0
+	
+	return result
+end
+
+function LibK.formatDuration( seconds, short )
+	local durationInfo = LibK.getDurationInfo2( seconds )
+	local str = ""
+	for k, v in ipairs( durationInfo ) do
+		str = str .. v.amount .. ( short and v.string[1] or " " .. v.string )
+		if k < #durationInfo then
+			str = str .. " "
+		end
+	end
+	return str
+end
+
+function LibK.getSmallestUnitToRepresent( seconds )
+	local durationInfo = LibK.getDurationInfo2( seconds )
+	return durationInfo[#durationInfo].unit
+end
+
 --Debug prints you can find when you forget them somewhere
 function dp( ... )
 	local dbginfo = debug.getinfo(2)
