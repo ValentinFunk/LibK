@@ -273,6 +273,9 @@ function DatabaseModel:included( class )
 		local fieldsToSelect = class.static.generateAliasedFields( model.tableName )
 		if recursive > 0 then
 			for relName, info in pairs( model.belongsTo or {} ) do
+				if info.noLoad then
+					continue
+				end
 				local targetClass = getClass(info.class)
 				if not targetClass then
 					def:Reject( 0, "Target class invalid for relationship " .. relName )
@@ -290,6 +293,9 @@ function DatabaseModel:included( class )
 		
 		if recursive > 0 then
 			for relName, info in pairs( model.belongsTo or {} ) do
+				if info.noLoad then
+					continue
+				end
 				local targetClass = getClass(info.class)
 				table.insert( query, 
 					string.format( " LEFT JOIN `%s` AS `%s` ON `%s`.`%s` = `%s`.`%s` ",
@@ -362,6 +368,10 @@ function DatabaseModel:included( class )
 				
 				--Handle joined Tables
 				for relName, info in pairs( model.belongsTo or {} ) do
+					if info.noLoad then
+						continue
+					end
+					
 					local targetClass = getClass(info.class)
 					local constructor = targetClass
 					local targetClassModel = targetClass.static.model
