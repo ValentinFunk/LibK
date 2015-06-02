@@ -14,6 +14,10 @@ function PANEL:SetImage( name )
 	self.image:SizeToContents()
 end
 
+function PANEL:SetMaterial( mat )
+	self.image:SetMaterial( mat ) 
+end
+
 function PANEL:PerformLayout( )
 	local mulW = self.container:GetWide( ) / self.image.ActualWidth
 	local mulH = self.container:GetTall( ) / self.image.ActualHeight
