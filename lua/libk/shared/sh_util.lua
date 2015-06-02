@@ -223,12 +223,18 @@ function LibK.getDurationInfo2( seconds )
 	return result
 end
 
-function LibK.formatDuration( seconds, short )
+function LibK.formatDuration( seconds, short, limit )
 	local durationInfo = LibK.getDurationInfo2( seconds )
+	limit = limit or #durationInfo 
+	
 	local str = ""
 	for k, v in ipairs( durationInfo ) do
+		if k > limit then
+			break
+		end
+		
 		str = str .. v.amount .. ( short and v.string[1] or " " .. v.string )
-		if k < #durationInfo then
+		if k < limit then
 			str = str .. " "
 		end
 	end
