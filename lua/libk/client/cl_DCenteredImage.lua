@@ -14,6 +14,10 @@ function PANEL:SetImage( name )
 	self.image:SizeToContents()
 end
 
+function PANEL:SetImageColor( col )
+	self.image:SetImageColor( col )
+end
+
 function PANEL:SetMaterial( mat )
 	self.image:SetMaterial( mat ) 
 end
