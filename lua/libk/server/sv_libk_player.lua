@@ -15,6 +15,10 @@ function LibK.playerInitialSpawn( ply )
 		end
 	end )
 	:Then( function( dbPlayer )
+		if not IsValid( ply ) then
+			-- Player crashed during join, do nothing
+			return
+		end
 		dpt( dbPlayer )
 		KLogf( 4, "[LibK] Player %s(id %i)", ply:Nick( ), dbPlayer.id )
 		ply.libk_originalNick = ply:Nick( )
