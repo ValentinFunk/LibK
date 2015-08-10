@@ -276,3 +276,16 @@ function LibK.consoleHeader( width, fillSymbol, text )
 	
 	return result
 end
+
+--Split table tbl into segments of size num
+function LibK.splitTable( tbl, num )
+	local seps = math.ceil(#tbl / num)
+	local ret = {}
+	for i = 0, seps - 1 do
+		ret[i + 1] = {}
+		for k = i * num + 1, math.min(i * num + num, #tbl) do
+			table.insert(ret[i + 1], tbl[k])
+		end
+	end
+	return ret
+end
