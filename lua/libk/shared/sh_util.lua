@@ -289,3 +289,16 @@ function LibK.splitTable( tbl, num )
 	end
 	return ret
 end
+
+function LibK.isnan( x ) 
+	return x ~= x 
+end
+
+function LibK.isinf( x )
+	return x == math.huge 
+end
+
+function LibK.isProperNumber( x )
+	x = tonumber( x )
+	return x and not LibK.isnan( x ) and not LibK.isinf( x )
+end
