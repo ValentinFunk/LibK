@@ -129,6 +129,9 @@ local function initializeTable( class )
 	fkParts = table.concat( fkParts, ", " )
 	
 	local sqlStr = query .. fieldsPart  .. fkParts .. ")"
+	if DATABASES[class.DB].CONNECTED_TO_MYSQL then
+		sqlStr = sqlStr .. "  ENGINE=InnoDB"
+	end
 	
 	local promise
 	if #modelsRequired > 0 then
