@@ -302,3 +302,15 @@ function LibK.isProperNumber( x )
 	x = tonumber( x )
 	return x and not LibK.isnan( x ) and not LibK.isinf( x )
 end
+
+-- @FGRibreau - Francois-Guillaume Ribreau
+-- @Redsmin - A full-feature client for Redis http://redsmin.com
+function table.filter(t, filterIter)
+  local out = {}
+
+  for k, v in pairs(t) do
+    if filterIter(v, k, t) then out[k] = v end
+  end
+
+  return out
+end
