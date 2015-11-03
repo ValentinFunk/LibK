@@ -51,7 +51,7 @@ function LibK.getFileProxy( virtualLua )
 		if pathId != "LUA" then
 			return file.Find( path, pathId )
 		end
-		
+
 		local files, folders = file.Find( path, pathId )
 		local vfiles, vfolders = file.Find( virtualLua .. "/" .. path, pathId )
 		table.Add( files, vfiles )
@@ -77,7 +77,7 @@ end
 function LibK.getCompileStringProxy( virtualLua, env )
 	return function( code, identifier, handleError )
 		local result = CompileString( code, identifier, handleError )
-		if result then
+		if result and type(result) == "function" then
 			setfenv( result, env )
 		end
 		return result
@@ -91,9 +91,9 @@ function LibK.createIsolatedEnvironment( tableName, virtualLua, virtualMain )
 	setmetatable( dependencyLookup, {
 		__index = function( tbl, key )
 			return LibK[key] or _G[key]
-		end 
+		end
 	} )
-	
+
 	local env = {}
 	setmetatable( env, { __index = dependencyLookup } ) --allow access to globals
 	LibK[tableName] = {}
@@ -120,7 +120,7 @@ function LibK.loadThirdparty( tableName, author, virtualLua, virtualMain, mainFi
 		include( mainFile )
 	end
 	setfenv( loadFunction, env )
-	
+
 	KLogf( 5, LibK.consoleHeader( 80, "*", "Loading " .. tableName .. " by " .. author ) )
 	loadFunction( )
 	LibK[tableName] = env[tableName]
@@ -128,13 +128,13 @@ function LibK.loadThirdparty( tableName, author, virtualLua, virtualMain, mainFi
 end
 
 --GLib created by !cake, used with permission.
-if file.Exists( "autorun/glib.lua", "LUA" ) then 
+if file.Exists( "autorun/glib.lua", "LUA" ) then
 	include( "autorun/glib.lua" )
 	LibK.GLib = GLib
 else
 	LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
 end
-	
+
 --Gooey by !cake
 --LibK.loadThirdparty( "Gooey", "!cake", "libk/3rdparty", "gooey", "gooey.lua" )
 
@@ -163,4 +163,3 @@ AddCSLuaFile( "libk/3rdparty/png.lua" )
 --Semver.lua Lib by kikito. Licensed under the MIT License
 LibK.loadThirdparty( "version", "kikito", "libk/3rdparty", "", "semver.lua" )
 AddCSLuaFile( "libk/3rdparty/semver.lua" )
-
