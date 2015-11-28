@@ -307,9 +307,6 @@ function ispromise( val )
 end
 
 -- Maps promises to results and resolves to the map when finished
-
-
-
 function Promise.Map( tbl, iterator )
     local promises = {}
     for k, v in pairs( tbl ) do
@@ -342,7 +339,7 @@ function Promise.Delay( delay, funcOrValue )
         if type(funcOrValue) == "function" then
             -- CAll the function and forward results. If the function returns a promise wait for completion and handle resolve and reject
             local results = {funcOrValue()}
-            if #results == 1 and istable(results[1]) and ( results[1]._IsDeferred or results[1]._IsPromise ) then
+            if #results == 1 and ispromise( results[1] ) then
                 results[1]:Then( function( ... )
                     def:Resolve( ... )
                 end, function( ... )
@@ -356,15 +353,5 @@ function Promise.Delay( delay, funcOrValue )
     end )
     return def:Promise( )
 end
-
-Promise.Map( {
-    Promise.Delay(1, 1),
-    Promise.Delay(2, 2),
-    3,
-    1232,
-}, function( val )
-    return val < 3 and val * 2 or Promise.Delay( 1, val * val )
-end ):Then(PrintTable)
-
 
 return Deferred;
