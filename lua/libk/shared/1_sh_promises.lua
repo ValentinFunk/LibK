@@ -3,16 +3,16 @@
 		Copyright (c) 2013 Lex Robinson
 		This code is freely available under the MIT License
 --]]
- 
+
 local setmetatable, pcall, table, pairs, error, ErrorNoHalt =
 		  setmetatable, pcall, table, pairs, error, ErrorNoHalt or print;
- 
+
 local function new(tab, ...)
 	local ret = setmetatable({}, {__index=tab});
 	ret:_init(...);
 	return ret;
 end
- 
+
 local function bind(what, context)
 		return function(...)
 				if (context) then
@@ -22,7 +22,7 @@ local function bind(what, context)
 				end
 		end
 end
- 
+
 local function pbind(func)
 	if type( func ) != "function" then
 		debug.Trace( )
@@ -36,7 +36,7 @@ local function pbind(func)
 			end*/
 	end
 end
- 
+
 local promise = {
 		_IsPromise = true;
 		Then = function(self, succ, fail, prog)
@@ -153,7 +153,7 @@ local promise = {
 				end
 				return self;
 		end;
- 
+
 		_init = function(self)
 				self._state = 'pending';
 				self._succs = {};
@@ -179,7 +179,7 @@ local deferred = {
 				end
 				return self;
 		end;
- 
+
 		Reject = function(self, ...)
 				local p = self._promise;
 				if (p._state ~= 'pending') then
@@ -199,7 +199,7 @@ local deferred = {
 				end
 				return self;
 		end;
- 
+
 		Notify = function(self, ...)
 				local p = self._promise;
 				if (p._state ~= 'pending') then
@@ -212,13 +212,13 @@ local deferred = {
 				end
 				return self;
 		end;
- 
+
 		_init = function(self)
 				self._promise = new(promise);
 		end;
- 
+
 		Promise = function(self) return self._promise; end;
- 
+
 		-- Proxies
 		_IsPromise = true;
 		Then = function(self, ...) return self._promise:Then(...); end;
@@ -227,7 +227,7 @@ local deferred = {
 		Progress = function(self, ...) self._promise:Progress(...); return self; end;
 		Always = function(self, ...) self._promise:Always(...); return self; end;
 };
- 
+
 function Deferred()
 		return new(deferred);
 end
@@ -243,18 +243,19 @@ function getPromiseState( promise )
 end
 
 --Kamshak
---Waits for all promises to be finished, when one errors it rejects, else it returns the results in order
+
+-- Waits for all promises to be finished, when one errors it rejects, else it returns the results in order
 function WhenAllFinished( tblPromises )
 	local def = Deferred( )
 	local results = {}
-	
+
 	if #tblPromises == 0 then
-		--No promises so we finished already? 
+		--No promises so we finished already?
 		--TODO: evaluate if reject is better in this case
 		def:Resolve( )
 		return def:Promise( )
 	end
-	
+
 	--Add result fetching Done funcs first
 	--to make sure that instant returning promises are fetched correctly
 	for k, v in pairs( tblPromises ) do
@@ -267,7 +268,7 @@ function WhenAllFinished( tblPromises )
 			end
 		end )
 	end
-	
+
 	for k, v in pairs( tblPromises ) do
 		v:Done( function( )
 			if def._promise._state == 'fail' or def._promise._state == 'done' then --might have errored or finished already
@@ -301,10 +302,69 @@ function Promise.Reject( ... )
 	return def:Promise()
 end
 
+function ispromise( val )
+    return val and istable(val) and ( val._IsDeferred or val._IsPromise )
+end
+
+-- Maps promises to results and resolves to the map when finished
+
+
+
+function Promise.Map( tbl, iterator )
+    local promises = {}
+    for k, v in pairs( tbl ) do
+        local promise = Promise.Resolve()
+        :Then( function( )
+            if ispromise( v ) then
+                return v:Then( iterator )
+            end
+            return iterator( v )
+        end )
+
+        table.insert( promises, promise )
+    end
+    return WhenAllFinished( promises ):Then( function( ... )
+        return {...}
+    end )
+end
+
+
 function Promise.Resolve( ... )
 	local def = Deferred( )
 	def:Resolve( ... )
 	return def:Promise()
 end
+
+-- Delay the calling of a function or resolving of a value through a promise.
+function Promise.Delay( delay, funcOrValue )
+    local def = Deferred( )
+    timer.Simple( delay, function( )
+        if type(funcOrValue) == "function" then
+            -- CAll the function and forward results. If the function returns a promise wait for completion and handle resolve and reject
+            local results = {funcOrValue()}
+            if #results == 1 and istable(results[1]) and ( results[1]._IsDeferred or results[1]._IsPromise ) then
+                results[1]:Then( function( ... )
+                    def:Resolve( ... )
+                end, function( ... )
+                    def:Reject( ... )
+                end )
+            end
+            def:Resolve( unpack( results ) )
+        else
+            def:Resolve( funcOrValue )
+        end
+    end )
+    return def:Promise( )
+end
+
+Promise.Map( {
+    Promise.Delay(1, 1),
+    Promise.Delay(2, 2),
+    3,
+    1232,
+}, function( val )
+    return val < 3 and val * 2 or Promise.Delay( 1, val * val )
+end ):Then(PrintTable)
+
 
 return Deferred;
