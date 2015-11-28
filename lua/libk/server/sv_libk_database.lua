@@ -265,6 +265,20 @@ function LibK.getDatabaseConnection( config, name )
 		end
 	end
 	
+	function DB.TableExists( name )
+		return Promise.Resolve()
+		:Then( function() 
+			if DB.CONNECTED_TO_MYSQL then
+				return DB.DoQuery( "SHOW TABLES LIKE '" .. name .. "'")
+			else
+				return DB.DoQuery( "SELECT name FROM sqlite_master WHERE type='table' AND name='" .. name .. "'" )
+			end
+		end )
+		:Then( function( result ) 
+			return result != nil
+		end )
+	end
+	
 	DATABASES[name] = DB
 	if config.UseMysql then
 		KLogf( 4, "Connecting to %s@%s db: %s", config.User, config.Host, config.Database )
