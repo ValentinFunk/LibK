@@ -223,6 +223,7 @@ function LibK.getDatabaseConnection( config, name )
 		databaseObject.onConnected = function()
 			DB.Log( Format( "[LibK] Connected to %s(%s@%s:%s)", name, username, host, database_port ) )
 			DB.CONNECTED_TO_MYSQL = true
+			DB.MySQLDB = databaseObject
 			DB.cachedQueries = DB.cachedQueries or {}
 			if #DB.cachedQueries > 0 then
 				KLogf( 4, "[INFO] Connection to the database %s has been reestablished, running %i queued queries", name, #DB.cachedQueries )
@@ -246,7 +247,6 @@ function LibK.getDatabaseConnection( config, name )
 			hook.Call("LibK_DatabaseInitialized", nil, DB, name )		
 		end
 		databaseObject:connect()
-		DB.MySQLDB = databaseObject
 	end
 
 	function DB.SQLStr(str)
