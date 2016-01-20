@@ -708,12 +708,10 @@ function DatabaseModel:getFieldForDb( fieldname )
 	local model = self.class.static.model
 	if model.fields[fieldname] == "table" then
 		local json
-		print(self:GetPrintName(), (self.saveFields or model.saveFields) and "savefields")
 		if self.saveFields or model.saveFields then --only specified fields
 			local tbl = {}
 			for k, v in pairs( self.saveFields ) do
-				tbl[k] = self[k]
-				print("saving", k, v)
+				tbl[v] = self[v]
 			end
 			json = util.TableToJSON( tbl )
 		else --everything but class/model, only one level, use saveFields if more is required

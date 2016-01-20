@@ -87,8 +87,8 @@ function sethk( )
 end
 
 function LibK.timeDiffString( timestamp )
-	local diff = os.time( ) - timestamp
-	if diff < 24 * 60 * 60 then
+	local diff = timestamp - os.time( )
+	if diff < 30 * 24 * 60 * 60 then
 		local diffTbl = os.date( "*t", diff )
 		
 		--need to do this because of epoch start
@@ -99,17 +99,17 @@ function LibK.timeDiffString( timestamp )
 
 		local str = ""
 		if diffTbl.day > 0 then
-			str = str .. diffTbl.day .. "days"
+			str = str .. diffTbl.day .. "  days"
 		elseif diffTbl.hour > 0 then 
-			str = str .. diffTbl.hour .. "h"
+			str = str .. diffTbl.hour .. " hours"
 		elseif diffTbl.min > 0 then 
-			str = str .. diffTbl.min .. "m"
+			str = str .. diffTbl.min .. " minutes"
 		elseif diffTbl.sec > 0 then 
-			str = str .. diffTbl.sec .. "s"
+			str = str .. diffTbl.sec .. " seconds"
 		else
 			return "just now"
 		end
-		return str .. " ago"
+		return str
 	else
 		return os.date( "%d.%m. %H:%M", timestamp )
 	end
