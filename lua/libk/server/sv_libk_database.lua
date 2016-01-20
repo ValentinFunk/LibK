@@ -17,7 +17,7 @@ function LibK.getDatabaseConnection( config, name )
 	if config.UseMysql then
 		local succ, err = pcall( require, "mysqloo" )
 		if not succ then
-			KLog( 1, "[LibK] FATAL: Couldn't load mysqloo, make sure it is correctly installed! errror was: " .. err ) 
+			KLog( 1, "[LibK] FATAL: Couldn't load mysqloo, make sure it is correctly installed! errror was: " .. err )
 		else
 			KLog( 4, "[LibK] MysqlOO is correctly installed." )
 		end
@@ -29,7 +29,7 @@ function LibK.getDatabaseConnection( config, name )
 	function DB.Log( ... )
 		KLog( 4, ... )
 	end
-	
+
 	function DB.SetBlocking( bBlocking )
 		DB.shouldBlock = bBlocking
 	end
@@ -124,7 +124,7 @@ function LibK.getDatabaseConnection( config, name )
 					table.insert(DB.cachedQueries, {sqlText, callback, false})
 					return
 				end
-				
+
 				DB.Log("MySQL Error: ".. E)
 				ErrorNoHalt(E .. " (" .. sqlText .. ")\n")
 				if errorCallback then
@@ -166,7 +166,7 @@ function LibK.getDatabaseConnection( config, name )
 		end, blocking )
 		return def:Promise( )
 	end
-	
+
 	function DB.QueryValue(sqlText, callback, errorCallback)
 		if DB.CONNECTED_TO_MYSQL then
 			local query = DB.MySQLDB:query(sqlText)
@@ -210,14 +210,18 @@ function LibK.getDatabaseConnection( config, name )
 	end
 
 	function DB.ConnectToMySQL(host, username, password, database_name, database_port)
-		if not mysqloo then DB.Log("MySQL Error: MySQL modules aren't installed properly!") Error("MySQL modules aren't installed properly!") end
+		if not mysqloo then
+			KLogf( 1, "MySQL Error: MySQLOO modules aren't installed properly!" )
+				hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, "MySQLOO is not installed properly" )
+		end
+
 		local databaseObject = mysqloo.connect(host, username, password, database_name, database_port)
 
 		if timer.Exists("libk_check_mysql_status") then timer.Destroy("libk_check_mysql_status") end
 
 		databaseObject.onConnectionFailed = function(_, msg)
 			KLogf( 1, "[LibK] Connection failed to %s(%s@%s:%s): %s", name, username, host, database_port, msg )
-			Error("Connection failed! " ..tostring(msg))
+			hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, tostring( msg ) )
 		end
 
 		databaseObject.onConnected = function()
@@ -243,7 +247,7 @@ function LibK.getDatabaseConnection( config, name )
 				--end
 			end)
 			DB.IsConnected = true
-			hook.Call("LibK_DatabaseInitialized", nil, DB, name )		
+			hook.Call("LibK_DatabaseInitialized", nil, DB, name )
 		end
 		databaseObject:connect()
 		DB.MySQLDB = databaseObject
@@ -256,7 +260,7 @@ function LibK.getDatabaseConnection( config, name )
 
 		return "\"" .. DB.MySQLDB:escape(tostring(str)) .. "\""
 	end
-	
+
 	function DB.DisableForeignKeyChecks( bDisable )
 		if DB.CONNECTED_TO_MYSQL then
 			return DB.DoQuery( "SET FOREIGN_KEY_CHECKS = " .. ( bDisable and "0" or "1" ) )
@@ -264,35 +268,35 @@ function LibK.getDatabaseConnection( config, name )
 			return DB.DoQuery( "PRAGMA foreign_key_check = " .. ( bDisable and "OFF" or "ON" ) )
 		end
 	end
-	
+
 	function DB.TableExists( name )
 		return Promise.Resolve()
-		:Then( function() 
+		:Then( function()
 			if DB.CONNECTED_TO_MYSQL then
 				return DB.DoQuery( "SHOW TABLES LIKE '" .. name .. "'")
 			else
 				return DB.DoQuery( "SELECT name FROM sqlite_master WHERE type='table' AND name='" .. name .. "'" )
 			end
 		end )
-		:Then( function( result ) 
+		:Then( function( result )
 			return result != nil
 		end )
 	end
-	
+
 	DATABASES[name] = DB
 	if config.UseMysql then
 		KLogf( 4, "Connecting to %s@%s db: %s", config.User, config.Host, config.Database )
 		DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 	else
 		DB.IsConnected = true
-		
+
 		-- Enable FK
-		DB.Query( "PRAGMA foreign_keys = ON;" ) 
+		DB.Query( "PRAGMA foreign_keys = ON;" )
 		DB.DisableForeignKeyChecks( false )
 
 		-- Run hooks
 		hook.Call("LibK_DatabaseInitialized", nil, DB, name )
 	end
-	
+
 	return DB
 end

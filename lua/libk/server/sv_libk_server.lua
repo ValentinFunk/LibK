@@ -26,7 +26,7 @@ end )
 */
 function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo, manualInitialize )
 	sqlInfo = sqlInfo or LibK.SQL --Fall back to LibK DB if plugin doesnt want a seperate connection
-	
+
 	function pluginTable.DBInitialize( )
 		pluginTable.DB = LibK.getDatabaseConnection( sqlInfo, pluginName )
 	end
@@ -34,7 +34,7 @@ function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo, manualInitialize 
 		LibK.InitializePromise:Done( function( )
 			pluginTable.DBInitialize( )
 		end )
-		
+
 		hook.Add( "OnReloaded", "LibK_Initialize" .. pluginName, pluginTable.DBInitialize )
 	end
 
@@ -44,14 +44,14 @@ function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo, manualInitialize 
 			if type( class ) != "table" or not class.name then
 				continue
 			end
-			
-			if not class.initializeTable then 
+
+			if not class.initializeTable then
 				continue
 			end
-			
+
 			local promise = class:initializeTable( )
 			:Done( function( )
-				KLogf( 4, "[%s]Initialized Model %s", pluginName, name ) 
+				KLogf( 4, "[%s]Initialized Model %s", pluginName, name )
 			end )
 			:Fail( function( errid, err )
 				KLogf( 2, "[%s]Failed to initialize Model %s(%i: %s)", pluginName, name, errid, err )
@@ -67,16 +67,22 @@ function LibK.SetupDatabase( pluginName, pluginTable, sqlInfo, manualInitialize 
 		end
 		KLogf( 4, "[%s] Database Connected, Init Models", pluginName )
 		pluginTable.initModels( )
-		:Done( function( )
+		:Always( function( )
 			if pluginTable.onDatabaseConnected then
 				pluginTable.onDatabaseConnected( )
 			end
 		end )
-		:Fail( function( )
-			if pluginTable.onDatabaseConnected then
-				pluginTable.onDatabaseConnected( )
-			end
-		end )
+	end )
+
+	hook.Add( "LibK_DatabaseConnectionFailed", "LibKFetchError" .. pluginName, function( database, dbName, msg )
+		if dbName != pluginName then
+			return
+		end
+
+		KLogf( 4, "[%s] Database Connection Failed", pluginName )
+		if pluginTable.onDatabaseConnectionFailed then
+			pluginTable.onDatabaseConnectionFailed( msg )
+		end
 	end )
 end
 
