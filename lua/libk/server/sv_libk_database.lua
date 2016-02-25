@@ -18,6 +18,11 @@ function LibK.getDatabaseConnection( config, name )
 		local succ, err = pcall( require, "mysqloo" )
 		if not succ then
 			KLog( 1, "[LibK] FATAL: Couldn't load mysqloo, make sure it is correctly installed! errror was: " .. err )
+			if err == "Couldn't load module library!" then
+				hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, "MySQLOO Error: libmysql.dll is not installed properly" )
+			else
+				hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, "MySQLOO is not installed properly" )
+			end
 		else
 			KLog( 4, "[LibK] MysqlOO is correctly installed." )
 		end
@@ -212,7 +217,7 @@ function LibK.getDatabaseConnection( config, name )
 	function DB.ConnectToMySQL(host, username, password, database_name, database_port)
 		if not mysqloo then
 			KLogf( 1, "MySQL Error: MySQLOO modules aren't installed properly!" )
-				hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, "MySQLOO is not installed properly" )
+			return
 		end
 
 		local databaseObject = mysqloo.connect(host, username, password, database_name, database_port)
