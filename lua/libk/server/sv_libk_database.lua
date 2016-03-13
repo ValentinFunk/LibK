@@ -288,6 +288,30 @@ function LibK.getDatabaseConnection( config, name )
 		end )
 	end
 
+	function DB.FieldExistsInTable( tableName, fieldName )
+		if DB.CONNECTED_TO_MYSQL then
+			if DB.SQLStr( tableName ) != '"' .. tableName .. '"' then
+				return Promise.Reject( "Possible SQL Injection through table name" )
+			end
+			return DB.DoQuery( Format( [[SHOW COLUMNS FROM  `%s` LIKE %s]] , tableName, DB.SQLStr( fieldName ) ) )
+			:Then( function( results )
+				if results and #results > 0 then
+					return results[1].Field == fieldName
+				end
+			end )
+		else
+			return DB.DoQuery( Format( 'PRAGMA table_info(%s)', tableName ) )
+			:Then( function( fields )
+				for k, v in pairs( fields ) do
+					if v.name == fieldName then
+						return true
+					end
+				end
+				return false
+			end )
+		end
+	end
+
 	DATABASES[name] = DB
 	if config.UseMysql then
 		KLogf( 4, "Connecting to %s@%s db: %s", config.User, config.Host, config.Database )
