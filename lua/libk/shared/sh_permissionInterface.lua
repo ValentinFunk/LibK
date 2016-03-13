@@ -6,19 +6,19 @@ function PermissionInterface.query( ply, access )
 	if ULib then
 		return ULib.ucl.query( ply, access )
 	end
-	
+
 	--Evolve
 	if ply.EV_HasPrivilege then
 		return ply:EV_HasPrivilege( access )
 	end
-	
+
 	--Exsto
 	if exsto then
 		return ply:IsAllowed( access )
 	end
 
 	KLogf(4, "[KReport] No compatible admin mod detected. ULX, Evolve and Exsto are supported- Defaulting." )
-	
+
 	if ply:IsSuperAdmin() then
 		return true
 	end
@@ -34,6 +34,15 @@ function PermissionInterface.anyAllowed( ply, tblAccess )
 	end
 end
 
+function PermissionInterface.getRankTitle( internalName )
+	local ranks = PermissionInterface.getRanks( )
+	for k, v in pairs( ranks ) do
+		if v.internalName == internalName then
+			return v.title
+		end
+	end
+end
+
 function PermissionInterface.getRanks( )
 	local ranks = { } --internalName: string, title: string
 	if ULib then
@@ -44,13 +53,13 @@ function PermissionInterface.getRanks( )
 		end
 		return ranks
 	end
-	
+
 	if evolve then
 		for internalName, rankInfo in pairs( evolve.ranks ) do
 			table.insert( ranks, { internalName = internalName, title = rankInfo.Title } )
 		end
 		return ranks
 	end
-	
+
 	return ranks
 end
