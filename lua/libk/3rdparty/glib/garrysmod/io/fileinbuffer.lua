@@ -34,10 +34,10 @@ function self:Pin ()
 end
 
 function self:SeekRelative (relativeSeekPos)
-	self:SeekTo (self:GetPosition () + relativeSeekPos)
+	self:SeekAbsolute (self:GetPosition () + relativeSeekPos)
 end
 
-function self:SeekTo (seekPos)
+function self:SeekAbsolute (seekPos)
 	seekPos = math.max (seekPos, self:GetSize ())
 	self.File:Seek (seekPos)
 end

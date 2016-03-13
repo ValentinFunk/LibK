@@ -1,6 +1,5 @@
 local self = {}
-GLib.Lua.Parameter = GLib.MakeConstructor (self)
-GLib.RegisterSerializable ("GLib.Lua.Parameter", GLib.Lua.Parameter)
+GLib.Lua.Parameter = GLib.MakeConstructor (self, GLib.Serialization.ISerializable)
 
 function self:ctor (parameterList, name)
 	self.ParameterList = parameterList
@@ -12,16 +11,20 @@ function self:ctor (parameterList, name)
 end
 
 -- ISerializable
-function self:Deserialize (inBuffer)
-	self.Name       = inBuffer:String ()
-	self.Variadic   = inBuffer:Boolean ()
-	self.FrameIndex = inBuffer:Int32 ()
+function self:Serialize (outBuffer)
+	outBuffer:StringN32 (self.Name    )
+	outBuffer:Boolean   (self.Variadic)
+	outBuffer:Int32     (self.FrameIndex or 0)
+	
+	return outBuffer
 end
 
-function self:Serialize (outBuffer)
-	outBuffer:String (self.Name)
-	outBuffer:Boolean (self.Variadic)
-	outBuffer:Int32 (self.FrameIndex or 0)
+function self:Deserialize (inBuffer)
+	self.Name       = inBuffer:StringN32 ()
+	self.Variadic   = inBuffer:Boolean   ()
+	self.FrameIndex = inBuffer:Int32     ()
+	
+	return self
 end
 
 -- Parameter

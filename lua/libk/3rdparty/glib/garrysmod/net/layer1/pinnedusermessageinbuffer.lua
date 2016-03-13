@@ -3,7 +3,7 @@ GLib.Net.Layer1.PinnedUsermessageInBuffer = GLib.MakeConstructor (self, GLib.Net
 
 function self:ctor (usermessageInBuffer)
 	self.InBuffer = usermessageInBuffer:ToStringInBuffer ()
-	self.InBuffer:SeekTo (usermessageInBuffer:GetPosition ())
+	self.InBuffer:SeekAbsolute (usermessageInBuffer:GetPosition ())
 end
 
 function self:GetBytesRemaining ()

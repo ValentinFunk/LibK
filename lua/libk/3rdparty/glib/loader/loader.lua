@@ -12,6 +12,10 @@ if CLIENT then
 end
 
 function GLib.Loader.CompileString (code, path, errorMode)
+	if string.find (code, "^\xef\xbb\xbf") then
+		code = string.sub (code, 4)
+	end
+	
 	code = table.concat (
 		{
 			"local AddCSLuaFile = GLib.NullCallback ",

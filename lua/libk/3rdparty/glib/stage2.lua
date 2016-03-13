@@ -2,8 +2,9 @@ if GLib.Stage2 then return end
 GLib.Stage2 = true
 
 -- Core
-include ("oop.lua")
-include ("idisposable.lua")
+include ("oop/enum.lua")
+include ("oop/oop.lua")
+include ("oop/idisposable.lua")
 
 -- String
 GLib.String = {}
@@ -27,7 +28,6 @@ include ("events/event.lua")
 include ("events/eventprovider.lua")
 
 -- Utility
-include ("bitconverter.lua")
 include ("coroutine.lua")
 include ("glue.lua")
 include ("invoker.lua")
@@ -60,10 +60,10 @@ include ("threading/event.lua")
 -- Serialization
 GLib.Serialization = {}
 include ("serialization/iserializable.lua")
-include ("serialization/serializationinfo.lua")
-include ("serialization/customserializationinfo.lua")
-include ("serialization/serializableregistry.lua")
-include ("serialization/serialization.lua")
+
+-- Properties
+include ("properties/properties.lua")
+include ("properties/propertyserializable.lua")
 
 -- Lua
 GLib.Lua = {}
@@ -107,6 +107,7 @@ include ("lua/decompiler/stringconstant.lua")
 
 include ("lua/decompiler/tablekeyvaluetype.lua")
 
+include ("lua/decompiler/bytecodeflags.lua")
 include ("lua/decompiler/operandtype.lua")
 include ("lua/decompiler/opcodeinfo.lua")
 include ("lua/decompiler/opcodes.lua")

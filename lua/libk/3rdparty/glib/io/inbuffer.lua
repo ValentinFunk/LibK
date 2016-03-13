@@ -32,8 +32,8 @@ function self:SeekRelative (relativeSeekPos)
 	GLib.Error ("InBuffer:SeekRelative : Not implemented.")
 end
 
-function self:SeekTo (seekPos)
-	GLib.Error ("InBuffer:SeekTo : Not implemented.")
+function self:SeekAbsolute (seekPos)
+	GLib.Error ("InBuffer:SeekAbsolute : Not implemented.")
 end
 
 function self:UInt8 ()
@@ -116,10 +116,6 @@ function self:Vector ()
 	local y = self:Float ()
 	local z = self:Float ()
 	return Vector (x, y, z)
-end
-
-function self:Char ()
-	return string_char (self:UInt8 ())
 end
 
 function self:Bytes (length)

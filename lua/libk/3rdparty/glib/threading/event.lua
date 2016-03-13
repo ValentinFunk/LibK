@@ -3,9 +3,9 @@ GLib.Threading.Event = GLib.MakeConstructor (self, GLib.Threading.IWaitable)
 
 function self:ctor ()
 	self.AutoReset = true
-	self.Fired = false
+	self.Fired     = false
 	
-	self.Waiters = {}
+	self.Waiters   = {}
 end
 
 function self:Fire ()

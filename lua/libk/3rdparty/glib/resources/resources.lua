@@ -77,13 +77,13 @@ function GLib.Resources.Get (namespace, id, versionHashOrCallback, callback)
 				
 				DebugPrint ("GLib.Resources : Received resource " .. namespace .. "/" ..id .. " (" .. GLib.FormatFileSize (#compressed) .. " decompressed to " .. GLib.FormatFileSize (#data) .. " in " .. GLib.FormatDuration (SysTime () - startTime) .. ").")
 				
+				resource:SetData (data)
+				resource:SetState (GLib.Resources.ResourceState.Available)
+				
 				if resource:IsCacheable () then
 					GLib.Resources.ResourceCache:CacheResource (resource:GetNamespace (), resource:GetId (), resource:GetVersionHash (), data)
 					resource:SetLocalPath ("data/" .. GLib.Resources.ResourceCache:GetCachePath (resource:GetNamespace (), resource:GetId (), resource:GetVersionHash ()))
 				end
-				
-				resource:SetData (data)
-				resource:SetState (GLib.Resources.ResourceState.Available)
 			end
 		)
 		transfer:AddEventListener ("RequestRejected",

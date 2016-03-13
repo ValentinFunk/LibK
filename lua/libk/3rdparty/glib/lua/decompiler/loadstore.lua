@@ -7,12 +7,19 @@ function self:ctor (frameVariable)
 	self.Index = 0
 end
 
-function self:Clone (loadStore)
-	loadStore = loadStore or GLib.Lua.LoadStore (self.FrameVariable)
-	loadStore.FrameVariable = self.FrameVariable
-	loadStore.Index = self.Index
+function self:Clone (clone)
+	clone = clone or self.__ictor ()
 	
-	return loadStore
+	clone:Copy (self)
+	
+	return clone
+end
+
+function self:Copy (source)
+	self:SetFrameVariable (source:GetFrameVariable ())
+	self:SetIndex         (source:GetIndex         ())
+	
+	return self
 end
 
 function self:GetBracketedExpression (outerPrecedence)

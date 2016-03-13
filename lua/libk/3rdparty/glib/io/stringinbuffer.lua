@@ -4,6 +4,7 @@ GLib.StringInBuffer = GLib.MakeConstructor (self, GLib.InBuffer)
 local math_max    = math.max
 
 local string_byte = string.byte
+local string_find = string.find
 local string_sub  = string.sub
 
 function self:ctor (data)
@@ -36,67 +37,56 @@ function self:SeekRelative (relativeSeekPos)
 	self.Position = self.Position + relativeSeekPos
 end
 
-function self:SeekTo (seekPos)
+function self:SeekAbsolute (seekPos)
 	self.Position = seekPos
 end
 
 function self:UInt8 ()
-	local n = string_byte (self.Data, self.Position) or 0
+	local uint80 = string_byte (self.Data, self.Position, self.Position)
 	self.Position = self.Position + 1
-	return n
+	return GLib.BitConverter.UInt8sToUInt8 (uint80 or 0)
 end
 
 function self:UInt16 ()
-	local n = string_byte (self.Data, self.Position) or 0
-	n = n + (string_byte (self.Data, self.Position + 1) or 0) * 256
+	local uint80, uint81 = string_byte (self.Data, self.Position, self.Position + 1)
 	self.Position = self.Position + 2
-	return n
+	return GLib.BitConverter.UInt8sToUInt16 (uint80 or 0, uint81 or 0)
 end
 
 function self:UInt32 ()
-	local n = string_byte (self.Data, self.Position) or 0
-	n = n + (string_byte (self.Data, self.Position + 1) or 0) * 256
-	n = n + (string_byte (self.Data, self.Position + 2) or 0) * 65536
-	n = n + (string_byte (self.Data, self.Position + 3) or 0) * 16777216
+	local uint80, uint81, uint82, uint83 = string_byte (self.Data, self.Position, self.Position + 3)
 	self.Position = self.Position + 4
-	return n
+	return GLib.BitConverter.UInt8sToUInt32 (uint80 or 0, uint81 or 0, uint82 or 0, uint83 or 0)
 end
 
 function self:UInt64 ()
-	local n = string_byte (self.Data, self.Position) or 0
-	n = n + (string_byte (self.Data, self.Position + 1) or 0) * 256
-	n = n + (string_byte (self.Data, self.Position + 2) or 0) * 65536
-	n = n + (string_byte (self.Data, self.Position + 3) or 0) * 16777216
-	n = n + (string_byte (self.Data, self.Position + 4) or 0) * 4294967296
-	n = n + (string_byte (self.Data, self.Position + 5) or 0) * 1099511627776
-	n = n + (string_byte (self.Data, self.Position + 6) or 0) * 281474976710656
-	n = n + (string_byte (self.Data, self.Position + 7) or 0) * 72057594037927936
+	local uint80, uint81, uint82, uint83, uint84, uint85, uint86, uint87 = string_byte (self.Data, self.Position, self.Position + 7)
 	self.Position = self.Position + 8
-	return n
+	return GLib.BitConverter.UInt8sToUInt64 (uint80 or 0, uint81 or 0, uint82 or 0, uint83 or 0, uint84 or 0, uint85 or 0, uint86 or 0, uint87 or 0)
 end
 
 function self:Int8 ()
-	local n = self:UInt8 ()
-	if n >= 128 then n = n - 256 end
-	return n
+	local uint80 = string_byte (self.Data, self.Position, self.Position)
+	self.Position = self.Position + 1
+	return GLib.BitConverter.UInt8sToInt8 (uint80 or 0)
 end
 
 function self:Int16 ()
-	local n = self:UInt16 ()
-	if n >= 32768 then n = n - 65536 end
-	return n
+	local uint80, uint81 = string_byte (self.Data, self.Position, self.Position + 1)
+	self.Position = self.Position + 2
+	return GLib.BitConverter.UInt8sToInt16 (uint80 or 0, uint81 or 0)
 end
 
 function self:Int32 ()
-	local n = self:UInt32 ()
-	if n >= 2147483648 then n = n - 4294967296 end
-	return n
+	local uint80, uint81, uint82, uint83 = string_byte (self.Data, self.Position, self.Position + 3)
+	self.Position = self.Position + 4
+	return GLib.BitConverter.UInt8sToInt32 (uint80 or 0, uint81 or 0, uint82 or 0, uint83 or 0)
 end
 
-function self:Char ()
-	local char = string_sub (self.Data, self.Position, self.Position)
-	self.Position = self.Position + 1
-	return char
+function self:Int64 ()
+	local uint80, uint81, uint82, uint83, uint84, uint85, uint86, uint87 = string_byte (self.Data, self.Position, self.Position + 7)
+	self.Position = self.Position + 8
+	return GLib.BitConverter.UInt8sToInt64 (uint80 or 0, uint81 or 0, uint82 or 0, uint83 or 0, uint84 or 0, uint85 or 0, uint86 or 0, uint87 or 0)
 end
 
 function self:Bytes (length)
@@ -107,6 +97,19 @@ end
 
 function self:String ()
 	return self:StringN16 ()
+end
+
+function self:StringZ ()
+	local terminatorPosition = string_find (self.Data, "\0", self.Position, true)
+	if terminatorPosition then
+		local str = string_sub (self.Data, self.Position, terminatorPosition - 1)
+		self.Position = terminatorPosition + 1
+		return str
+	else
+		local str = string_sub (self.Data, self.Position)
+		self.Position = #self.Data
+		return str
+	end
 end
 
 function self:LongString ()

@@ -5,13 +5,13 @@ function GLib.Enumerator.ArrayEnumerator (tbl, maxIndex)
 		local i = 0
 		return function ()
 			i = i + 1
-			if i > maxIndex then return nil end
 			return tbl [i]
 		end
 	else
 		local i = 0
 		return function ()
 			i = i + 1
+			if i > maxIndex then return nil end
 			return tbl [i]
 		end
 	end

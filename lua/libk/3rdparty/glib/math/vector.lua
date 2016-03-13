@@ -1,6 +1,28 @@
 local self = {}
 GLib.Vector = GLib.MakeConstructor (self, GLib.Matrix)
 
+function self:ctor (w, h, m1, ...)
+end
+
+function self:Clone (clone)
+	clone = clone or self.__ictor ()
+	
+	clone:Copy (self)
+	
+	return clone
+end
+
+function self:Copy (source)
+	self.Width  = source.Width
+	self.Height = source.Height
+	
+	for i = 1, source:GetElementCount () do
+		self [i] = source [i]
+	end
+	
+	return self
+end
+
 function self:Add (b, out)
 	out = out or self.__ictor (self:GetElementCount ())
 	
@@ -12,19 +34,6 @@ function self:Add (b, out)
 	end
 	
 	return b
-end
-
-function self:Clone (out)
-	out = out or self.__ictor (self:GetElementCount ())
-	
-	out.Width  = self.Width
-	out.Height = self.Height
-	
-	for i = 1, self:GetElementCount () do
-		out [i] = self [i]
-	end
-	
-	return out
 end
 
 function self:Cross (b, out)

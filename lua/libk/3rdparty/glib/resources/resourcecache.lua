@@ -126,7 +126,7 @@ function self:LoadLastAccessTimes ()
 	local path = inBuffer:String ()
 	while path ~= "" do
 		self.LastAccessTimes [path] = inBuffer:UInt32 ()
-		inBuffer:Char () -- Discard newline
+		inBuffer:Bytes (1) -- Discard newline
 		
 		path = inBuffer:String ()
 	end
@@ -139,7 +139,7 @@ function self:SaveLastAccessTimes ()
 	for path, timestamp in pairs (self.LastAccessTimes) do
 		outBuffer:String (path)
 		outBuffer:UInt32 (timestamp)
-		outBuffer:Char ("\n")
+		outBuffer:Bytes ("\n")
 	end
 	outBuffer:String ("")
 	

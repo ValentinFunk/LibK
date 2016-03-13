@@ -6,6 +6,13 @@ function self:ctor (functionOrDump, authId)
 	self.Function = nil
 	self.Dump = nil
 	
+	-- Header
+	self.Signature = nil
+	self.Version   = nil
+	self.Flags     = nil
+	
+	self.Source    = nil
+	
 	-- Function dumps
 	self.Functions = {}
 	
@@ -29,10 +36,13 @@ function self:ctor (functionOrDump, authId)
 	local reader = GLib.StringInBuffer (self.Dump)
 	
 	-- Header
-	self.Signature = reader:Bytes (4)
-	self.Reserved1 = reader:UInt8 ()
+	self.Signature = reader:Bytes (3)
+	self.Version   = reader:UInt8 ()
+	self.Flags     = reader:UInt8 ()
 	
-	self.Source = reader:Bytes (reader:UInt8 ())
+	if bit.band (self.Flags, GLib.Lua.BytecodeFlags.DebugInformationStripped) == 0 then
+		self.Source = reader:Bytes (reader:ULEB128 ())
+	end
 	
 	-- Functions
 	local functionDataLength = reader:ULEB128 ()
@@ -48,6 +58,31 @@ end
 
 function self:GetDump ()
 	return self.Dump
+end
+
+function self:HasDump ()
+	return self.Dump ~= nil
+end
+
+-- Header
+function self:GetSignature ()
+	return self.Signature
+end
+
+function self:GetVersion ()
+	return self.Version
+end
+
+function self:GetFlags ()
+	return self.Flags
+end
+
+function self:IsDebugInformationStripped ()
+	return bit.band (self.Flags, GLib.Lua.BytecodeFlags.DebugInformationStripped) ~= 0
+end
+
+function self:GetSource ()
+	return self.Source
 end
 
 function self:GetFunction (index)
@@ -66,19 +101,12 @@ function self:GetInputFunction ()
 	return self.Function
 end
 
-function self:GetSource ()
-	return self.Source
-end
-
-function self:HasDump ()
-	return self.Dump ~= nil
-end
-
 function self:ToString ()
 	if not self.String then
 		local str = GLib.StringBuilder ()
-		if self:GetSource () then
-			str:Append ("-- " .. self:GetSource ())
+		local source = self:GetSource ()
+		if source then
+			str:Append ("-- " .. GLib.String.EscapeNonprintable (source))
 			str:Append ("\n")
 		end
 		if #self.Functions > 0 then

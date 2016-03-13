@@ -90,10 +90,6 @@ function self:Vector (v)
 	self:Float (v.z)
 end
 
-function self:Char (char)
-	self:UInt8 (string_byte (char))
-end
-
 function self:Bytes (data, length)
 	length = length or #data
 	length = math_min (length, #data)

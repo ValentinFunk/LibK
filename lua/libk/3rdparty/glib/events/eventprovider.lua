@@ -31,6 +31,27 @@ function self:ctor (host, getParentEventProvider)
 	self.GetParentEventProvider = getParentEventProvider
 end
 
+function self:Clone (clone)
+	clone = clone or self.__ictor ()
+	clone = clone:GetEventProvider ()
+	
+	clone:Copy (self)
+	
+	return clone
+end
+
+function self:Copy (source)
+	source = source:GetEventProvider ()
+	
+	for eventName, eventListeners in pairs (source.EventListeners) do
+		for callbackName, callback in pairs (eventListeners) do
+			self:AddEventListener (eventName, callbackName, callback)
+		end
+	end
+	
+	return self
+end
+
 function self:AddEventListener (eventName, nameOrCallback, callback)
 	callback = callback or nameOrCallback
 	if not self.EventListeners [eventName] then
@@ -52,29 +73,18 @@ function self:ClearEventListeners (eventName)
 	self.EventListeners [eventName] = nil
 end
 
-function self:Clone (eventProvider)
-	eventProvider = eventProvider or GLib.EventProvider ()
-	eventProvider = eventProvider:GetEventProvider ()
-	
-	for eventName, eventListeners in pairs (self.EventListeners) do
-		eventProvider.EventListeners [eventName] = eventProvider.EventListeners [eventName] or {}
-		
-		for callbackName, callback in pairs (eventListeners) do
-			eventProvider.EventListeners [eventName] [callbackName] = callback
-		end
-	end
-	
-	return eventProvider
-end
-
 function self:DispatchEvent (eventName, ...)
 	if self.ShouldSuppressEvents then return end
+	
+	if Profiler then Profiler:Begin (eventName) end
 	
 	local a, b, c = nil, nil, nil
 	
 	if self.EventListeners [eventName] then
 		for callbackName, callback in pairs (self.EventListeners [eventName]) do
+			if Profiler then Profiler:Begin (eventName .. ":" .. tostring (callbackName)) end
 			local success, r0, r1, r2 = xpcall (callback, GLib.Error, ...)
+			if Profiler then Profiler:End () end
 			if not success then
 				ErrorNoHalt ("Error in hook " .. eventName .. ": " .. tostring (callbackName) .. "!\n")
 			else
@@ -100,6 +110,8 @@ function self:DispatchEvent (eventName, ...)
 			end
 		end
 	end
+	
+	if Profiler then Profiler:End () end
 	
 	return a, b, c
 end

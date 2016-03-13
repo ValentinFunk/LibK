@@ -10,6 +10,22 @@ function self:dtor ()
 	self:ClearListeners ()
 end
 
+function self:Clone (clone)
+	clone = clone or self.__ictor ()
+	
+	clone:Copy (self)
+	
+	return clone
+end
+
+function self:Copy (source)
+	for callbackName, callback in pairs (source.Listeners) do
+		self:AddListener (callbackName, callback)
+	end
+	
+	return self
+end
+
 function self:AddListener (nameOrCallback, callback)
 	callback = callback or nameOrCallback
 	self.Listeners [nameOrCallback] = callback
@@ -17,16 +33,6 @@ end
 
 function self:ClearListeners ()
 	self.Listeners = {}
-end
-
-function self:Clone (event)
-	event = event or GLib.Event ()
-	
-	for callbackName, callback in pairs (self.Listeners) do
-		event.Listeners [callbackName] = callback
-	end
-	
-	return event
 end
 
 function self:Dispatch (...)

@@ -56,62 +56,57 @@ if SERVER then
 	function GLib.AddReloadCommand (includePath, systemName, systemTableName)
 		includePath = includePath or (systemName .. "/" .. systemName .. ".lua")
 		
-		concommand.Add (systemName .. "_reload_sv", function (ply, _, arg)
-			if ply and ply:IsValid () and not ply:IsSuperAdmin () then return end
 		
-			local startTime = SysTime ()
-			GLib.UnloadSystem (systemTableName)
-			
-			if GLib then GLib.Loader.Include (includePath)
-			else include (includePath) end
-			
-			GLib.Debug (systemName .. "_reload took " .. tostring ((SysTime () - startTime) * 1000) .. " ms.")
-		end)
-		concommand.Add (systemName .. "_reload_sh", function (ply, _, arg)
-			if ply and ply:IsValid () and not ply:IsSuperAdmin () then return end
-			
-			local startTime = SysTime ()
-			GLib.UnloadSystem (systemTableName)
-			
-			if GLib then GLib.Loader.Include (includePath)
-			else include (includePath) end
-			
-			for _, ply in ipairs (player.GetAll ()) do
-				ply:ConCommand (systemName .. "_reload")
+		return reload
+	end
+end
+
+function GLib.AddReloadCommand (includePath, systemName, systemTableName)
+	includePath = includePath or (systemName .. "/" .. systemName .. ".lua")
+	
+	local function reload ()
+		local startTime = SysTime ()
+		GLib.UnloadSystem (systemTableName)
+		
+		if GLib then GLib.Loader.Include (includePath)
+		else include (includePath) end
+		
+		GLib.Debug (systemName .. "_reload took " .. tostring ((SysTime () - startTime) * 1000) .. " ms.")
+	end
+	
+	if SERVER then
+		concommand.Add (systemName .. "_reload_sv",
+			function (ply, _, arg)
+				if ply and ply:IsValid () and not ply:IsSuperAdmin () then return end
+				
+				reload ()
 			end
-			GLib.Debug (systemName .. "_reload took " .. tostring ((SysTime () - startTime) * 1000) .. " ms.")
-		end)
+		)
+		concommand.Add (systemName .. "_reload_sh",
+			function (ply, _, arg)
+				if ply and ply:IsValid () and not ply:IsSuperAdmin () then return end
+				
+				reload ()
+				
+				for _, ply in ipairs (player.GetAll ()) do
+					ply:ConCommand (systemName .. "_reload")
+				end
+			end
+		)
+	elseif CLIENT then
+		concommand.Add (systemName .. "_reload",
+			function (ply, _, arg)
+				reload ()
+			end
+		)
 	end
-elseif CLIENT then
-	function GLib.AddReloadCommand (includePath, systemName, systemTableName)
-		includePath = includePath or (systemName .. "/" .. systemName .. ".lua")
-		
-		concommand.Add (systemName .. "_reload", function (ply, _, arg)
-			local startTime = SysTime ()
-			GLib.UnloadSystem (systemTableName)
-			
-			if GLib then GLib.Loader.Include (includePath)
-			else include (includePath) end
-			
-			GLib.Debug (systemName .. "_reload took " .. tostring ((SysTime () - startTime) * 1000) .. " ms.")
-		end)
-	end
-else
-	function GLib.AddReloadCommand (includePath, systemName, systemTableName) end
+	
+	return reload
 end
 GLib.AddReloadCommand ("glib/glib.lua", "glib", "GLib")
 
 function GLib.Debug (message)
 	-- ErrorNoHalt (message .. "\n")
-end
-
-function GLib.Enum (enum)
-	if not next (enum) then
-		GLib.Error ("GLib.Enum : This enum appears to be empty!")
-	end
-	
-	GLib.InvertTable (enum)
-	return enum
 end
 
 function GLib.EnumerateDelayed (tbl, callback, finishCallback)
@@ -303,7 +298,7 @@ function GLib.IncludeDirectory (folder, recursive)
 end
 
 function GLib.InvertTable (tbl, out)
-	out = out or tbl
+	out = out or {}
 	
 	local keys = {}
 	for key, _ in pairs (tbl) do
@@ -425,7 +420,8 @@ function GLib.WeakValueTable ()
 end
 
 -- GLib.Initialize uses this code
-include ("oop.lua")
+include ("oop/enum.lua")
+include ("oop/oop.lua")
 include ("timers.lua")
 include ("events/eventprovider.lua")
 GLib.Initialize ("GLib", GLib)
@@ -433,6 +429,8 @@ GLib.Initialize ("GLib", GLib)
 -- Now load the rest
 include ("userid.lua")
 include ("stringbuilder.lua")
+
+include ("bitconverter.lua")
 include ("io/inbuffer.lua")
 include ("io/outbuffer.lua")
 include ("io/stringinbuffer.lua")
@@ -456,11 +454,13 @@ include ("loader/commands.lua")
 -- since GLib.EnumerateFolder calls GLib.Loader.Find.
 GLib.AddCSLuaFile ("glib/glib.lua")
 GLib.AddCSLuaFile ("glib/stage1.lua")
-GLib.AddCSLuaFile ("glib/oop.lua")
+GLib.AddCSLuaFile ("glib/oop/enum.lua")
+GLib.AddCSLuaFile ("glib/oop/oop.lua")
 GLib.AddCSLuaFile ("glib/timers.lua")
 GLib.AddCSLuaFile ("glib/userid.lua")
 GLib.AddCSLuaFile ("glib/events/eventprovider.lua")
 GLib.AddCSLuaFile ("glib/stringbuilder.lua")
+GLib.AddCSLuaFile ("glib/bitconverter.lua")
 GLib.AddCSLuaFile ("glib/io/inbuffer.lua")
 GLib.AddCSLuaFile ("glib/io/outbuffer.lua")
 GLib.AddCSLuaFile ("glib/io/stringinbuffer.lua")

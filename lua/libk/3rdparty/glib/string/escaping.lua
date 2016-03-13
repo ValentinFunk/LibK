@@ -41,21 +41,27 @@ function GLib.String.Escape (str)
 	return str
 end
 
+local escapeNonprintableMap =
+{
+	["\\"] = "\\\\",
+	["\""] = "\\\""
+}
+
+for i = 0, 31 do
+	escapeNonprintableMap [string_char (i)] = string_format ("\\x%02x", i)
+end
+for i = 127, 255 do
+	escapeNonprintableMap [string_char (i)] = string_format ("\\x%02x", i)
+end
+
 function GLib.String.EscapeNonprintable (str)
 	if not isstring (str) then
 		ErrorNoHalt ("GLib.String.EscapeNonprintable: Expected string, got " .. type (str) .. " instead.\n")
 		return ""
 	end
-	str = string_gsub (str, ".",
-		function (c)
-			if c == "\\" then return "\\\\" end
-			if c == "\"" then return "\\\"" end
-			
-			c = string_byte (c)
-			if c <   32 then return string_format ("\\x%02x", c) end
-			if c >= 127 then return string_format ("\\x%02x", c) end
-		end
-	)
+	
+	str = string_gsub (str, ".", escapeNonprintableMap)
+	
 	return str
 end
 

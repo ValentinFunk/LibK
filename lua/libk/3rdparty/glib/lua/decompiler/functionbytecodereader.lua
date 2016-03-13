@@ -10,77 +10,85 @@ function self:ctor (bytecodeReader, functionDump)
 	-- ToString
 	self.String = nil
 	
+	self.PrototypeFlags = 0
+	
 	-- Variables
 	-- Frame
-	self.FrameSize = 0
+	self.FrameSize      = 0
 	self.FrameVariables = {}
 	self.VariadicFrameVariable = GLib.Lua.FrameVariable (self, "...")
 	self.VariadicFrameVariable:SetName ("...")
 	
 	-- Parameters
 	self.ParameterCount = 0
-	self.VariadicFlags = 0
-	self.Variadic = false
+	self.Variadic       = false
 	
 	-- Upvalues
 	self.UpvalueCount = 0
-	self.UpvalueData = {}
+	self.UpvalueData  = {}
 	self.UpvalueNames = {}
 	
 	-- Constants
 	-- Garbage Collected Constants
 	self.GarbageCollectedConstantCount = 0
-	self.GarbageCollectedConstants = {}
+	self.GarbageCollectedConstants     = {}
 	
 	-- Numeric Constants
 	self.NumericConstantCount = 0
-	self.NumericConstants = {}
+	self.NumericConstants     = {}
 	
 	-- Instructions
-	self.InstructionCount = 0
-	self.InstructionOpcodes = {}
+	self.InstructionCount     = 0
+	self.InstructionOpcodes   = {}
 	self.InstructionOperandAs = {}
 	self.InstructionOperandBs = {}
 	self.InstructionOperandCs = {}
-	self.InstructionLines = {}
-	self.InstructionTags = {}
+	self.InstructionLines     = {}
+	self.InstructionTags      = {}
 	
 	-- Debugging
 	self.StartLine = 0
 	self.LineCount = 0
-	self.EndLine = 0
+	self.EndLine   = 0
 	
-	self.DebugDataLength = 0
-	self.DebugData = nil
+	self.DebugDataLength   = 0
+	self.DebugData         = nil
 	self.ResidualDebugData = nil
 	
 	-- Read
 	local reader = GLib.StringInBuffer (functionDump)
 	
 	-- Parameters
-	self.VariadicFlags = reader:UInt8 ()
-	self.Variadic = bit.band (self.VariadicFlags, 2) ~= 0
+	self.PrototypeFlags = reader:UInt8 ()
+	self.Variadic = bit.band (self.PrototypeFlags, 2) ~= 0
 	
 	self.ParameterCount = reader:UInt8 ()
 	
 	-- Variables
-	self.FrameSize = reader:UInt8 ()
+	self.FrameSize    = reader:UInt8 ()
 	self.UpvalueCount = reader:UInt8 ()
+	
+	for i = 1, self.FrameSize do
+		local frameVariable = GLib.Lua.FrameVariable (self, i)
+		self.FrameVariables [i] = frameVariable
+	end
 	
 	-- Constant Counts
 	self.GarbageCollectedConstantCount = reader:ULEB128 ()
-	self.NumericConstantCount = reader:ULEB128 ()
-	self.InstructionCount = reader:ULEB128 ()
+	self.NumericConstantCount          = reader:ULEB128 ()
+	self.InstructionCount              = reader:ULEB128 ()
 	
-	self.DebugDataLength = reader:ULEB128 ()
-	
-	self.StartLine = reader:ULEB128 ()
-	self.LineCount = reader:ULEB128 ()
-	self.EndLine = self.StartLine + self.LineCount
+	if not self.BytecodeReader:IsDebugInformationStripped () then
+		self.DebugDataLength = reader:ULEB128 ()
+		
+		self.StartLine = reader:ULEB128 ()
+		self.LineCount = reader:ULEB128 ()
+		self.EndLine = self.StartLine + self.LineCount
+	end
 	
 	-- Instructions
 	for i = 1, self.InstructionCount do
-		self.InstructionOpcodes [#self.InstructionOpcodes + 1] = reader:UInt8 ()
+		self.InstructionOpcodes   [#self.InstructionOpcodes + 1] = reader:UInt8 ()
 		self.InstructionOperandAs [#self.InstructionOperandAs + 1] = reader:UInt8 ()
 		self.InstructionOperandCs [#self.InstructionOperandCs + 1] = reader:UInt8 ()
 		self.InstructionOperandBs [#self.InstructionOperandBs + 1] = reader:UInt8 ()
@@ -146,41 +154,42 @@ function self:ctor (bytecodeReader, functionDump)
 	end
 	
 	-- Debugging data
-	self.DebugData = reader:Bytes (self.DebugDataLength)
-	
-	local debugReader = GLib.StringInBuffer (self.DebugData)
-	if self.LineCount < 256 then
-		for i = 1, self.InstructionCount do
-			self.InstructionLines [i] = debugReader:UInt8 ()
+	if not self.BytecodeReader:IsDebugInformationStripped () then
+		self.DebugData = reader:Bytes (self.DebugDataLength)
+		
+		local debugReader = GLib.StringInBuffer (self.DebugData)
+		if self.LineCount < 256 then
+			for i = 1, self.InstructionCount do
+				self.InstructionLines [i] = debugReader:UInt8 ()
+			end
+		elseif self.LineCount < 65536 then
+			for i = 1, self.InstructionCount do
+				self.InstructionLines [i] = debugReader:UInt16 ()
+			end
+		else
+			for i = 1, self.InstructionCount do
+				self.InstructionLines [i] = debugReader:UInt32 ()
+			end
 		end
-	elseif self.LineCount < 65536 then
-		for i = 1, self.InstructionCount do
-			self.InstructionLines [i] = debugReader:UInt16 ()
+		
+		-- Upvalues
+		for i = 1, self.UpvalueCount do
+			self.UpvalueNames [i] = debugReader:StringZ ()
+			if self.UpvalueNames [i] == "" or not GLib.Lua.IsValidVariableName (self.UpvalueNames [i]) then
+				self.UpvalueNames [i] = nil
+			end
 		end
-	else
-		for i = 1, self.InstructionCount do
-			self.InstructionLines [i] = debugReader:UInt32 ()
+		
+		-- Frame Variables
+		for i = 1, self.FrameSize do
+			local frameVariable = self.FrameVariables [i]
+			frameVariable:SetName (debugReader:StringZ ())
+			frameVariable:SetStartInstruction (debugReader:ULEB128 ())
+			frameVariable:SetEndInstruction   (debugReader:ULEB128 ())
 		end
+		
+		self.DebugResidualData = debugReader:Bytes (1024)
 	end
-	
-	-- Upvalues
-	for i = 1, self.UpvalueCount do
-		self.UpvalueNames [i] = debugReader:StringZ ()
-		if self.UpvalueNames [i] == "" or not GLib.Lua.IsValidVariableName (self.UpvalueNames [i]) then
-			self.UpvalueNames [i] = nil
-		end
-	end
-	
-	-- Frame Variables
-	for i = 1, self.FrameSize do
-		local frameVariable = GLib.Lua.FrameVariable (self, i)
-		self.FrameVariables [i] = frameVariable
-		frameVariable:SetName (debugReader:StringZ ())
-		frameVariable:SetStartInstruction (debugReader:ULEB128 ())
-		frameVariable:SetEndInstruction (debugReader:ULEB128 ())
-	end
-	
-	self.DebugResidualData = debugReader:Bytes (1024)
 	self.Rest = reader:Bytes (1024)
 end
 

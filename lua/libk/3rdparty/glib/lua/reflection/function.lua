@@ -1,6 +1,5 @@
 local self = {}
-GLib.Lua.Function = GLib.MakeConstructor (self)
-GLib.RegisterSerializable ("GLib.Lua.Function", GLib.Lua.Function)
+GLib.Lua.Function = GLib.MakeConstructor (self, GLib.Serialization.ISerializable)
 
 function GLib.Lua.Function.ctor (func)
 	if func then
@@ -25,34 +24,38 @@ function self:ctor (func)
 	self.ParameterList = nil
 	
 	-- Definition
-	self.FilePath = self.InfoTable and self.InfoTable.short_src
+	self.FilePath  = self.InfoTable and self.InfoTable.short_src
 	
 	self.StartLine = self.InfoTable and self.InfoTable.linedefined
-	self.EndLine = self.InfoTable and self.InfoTable.lastlinedefined
+	self.EndLine   = self.InfoTable and self.InfoTable.lastlinedefined
 	
-	self.Native = self.InfoTable and self.InfoTable.what == "C"
+	self.Native    = self.InfoTable and self.InfoTable.what == "C"
 end
 
 -- ISerializable
-function self:Deserialize (inBuffer)
-	self:GetParameterList ():Deserialize (inBuffer)
-	
-	self.FilePath = inBuffer:String ()
-	self.StartLine = inBuffer:UInt32 ()
-	self.EndLine = inBuffer:UInt32 ()
-	self.Native = inBuffer:Boolean ()
-end
-
 function self:Serialize (outBuffer)
 	self:GetParameterList ():Serialize (outBuffer)
 	
-	outBuffer:String (self.FilePath)
-	outBuffer:UInt32 (self.StartLine)
-	outBuffer:UInt32 (self.EndLine)
-	outBuffer:Boolean (self.Native)
+	outBuffer:StringN32 (self.FilePath )
+	outBuffer:UInt32    (self.StartLine)
+	outBuffer:UInt32    (self.EndLine  )
+	outBuffer:Boolean   (self.Native   )
+	
+	return outBuffer
 end
 
--- Definition
+function self:Deserialize (inBuffer)
+	self:GetParameterList ():Deserialize (inBuffer)
+	
+	self.FilePath  = inBuffer:StringN32 ()
+	self.StartLine = inBuffer:UInt32    ()
+	self.EndLine   = inBuffer:UInt32    ()
+	self.Native    = inBuffer:Boolean   ()
+	
+	return self
+end
+
+-- Function
 function self:GetStartLine ()
 	return self.StartLine
 end

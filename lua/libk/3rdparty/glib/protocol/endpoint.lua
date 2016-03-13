@@ -48,6 +48,8 @@ function self:CloseSession (session)
 end
 
 function self:DebugMessage (message)
+	if true then return end
+	
 	message = tostring (CurTime ()) .. ": " .. message
 	self.Log [#self.Log + 1] =
 	{

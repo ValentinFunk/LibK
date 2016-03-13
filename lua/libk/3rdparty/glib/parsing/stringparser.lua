@@ -18,7 +18,7 @@ function self:ctor (str)
 end
 
 function self:GetPosition ()
-		return self.Position
+	return self.Position
 end
 
 function self:AcceptLiteral (str)

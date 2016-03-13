@@ -31,57 +31,14 @@ function self:GetString ()
 	return self.Data [1] or ""
 end
 
-function self:UInt8 (n)
-	self.Data [#self.Data + 1] = string_char (
-		bit_band (           n,      0xFF)
-	)
-end
-
-function self:UInt16 (n)
-	self.Data [#self.Data + 1] = string_char (
-		bit_band (           n,      0xFF),
-		bit_band (bit_rshift(n,  8), 0xFF)
-	)
-end
-
-function self:UInt32 (n)
-	self.Data [#self.Data + 1] = string_char (
-		bit_band (           n,      0xFF),
-		bit_band (bit_rshift(n,  8), 0xFF),
-		bit_band (bit_rshift(n, 16), 0xFF),
-		bit_band (bit_rshift(n, 24), 0xFF)
-	)
-end
-
-function self:UInt64 (n)
-	self.Data [#self.Data + 1] = string_char (            n                      % 256)
-	self.Data [#self.Data + 1] = string_char (math_floor (n /               256) % 256)
-	self.Data [#self.Data + 1] = string_char (math_floor (n /             65536) % 256)
-	self.Data [#self.Data + 1] = string_char (math_floor (n /          16777216) % 256)
-	self.Data [#self.Data + 1] = string_char (math_floor (n /        4294967296) % 256)
-	self.Data [#self.Data + 1] = string_char (math_floor (n /     1099511627776) % 256)
-	self.Data [#self.Data + 1] = string_char (math_floor (n /   281474976710656) % 256)
-	self.Data [#self.Data + 1] = string_char (math_floor (n / 72057594037927936) % 256)
-end
-
-function self:Int8 (n)
-	if n < 0 then n = n + 256 end
-	self:UInt8 (n)
-end
-
-function self:Int16 (n)
-	if n < 0 then n = n + 65536 end
-	self:UInt16 (n)
-end
-
-function self:Int32 (n)
-	if n < 0 then n = n + 4294967296 end
-	self:UInt32 (n)
-end
-
-function self:Char (char)
-	self.Data [#self.Data + 1] = string_sub (char, 1, 1)
-end
+function self:UInt8  (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.UInt8ToUInt8s  (n)) end
+function self:UInt16 (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.UInt16ToUInt8s (n)) end
+function self:UInt32 (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.UInt32ToUInt8s (n)) end
+function self:UInt64 (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.UInt64ToUInt8s (n)) end
+function self:Int8   (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.Int8ToUInt8s   (n)) end
+function self:Int16  (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.Int16ToUInt8s  (n)) end
+function self:Int32  (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.Int32ToUInt8s  (n)) end
+function self:Int64  (n) self.Data [#self.Data + 1] = string_char (GLib.BitConverter.Int64ToUInt8s  (n)) end
 
 function self:Bytes (data, length)
 	length = length or #data
