@@ -750,7 +750,7 @@ function DatabaseModel:remove( )
 	end
 
 	local overrideKeyValue = ( model.overrideKey and self[model.overrideKey] ) or nil
-	local queryStr = Format( "DELETE FROM %s WHERE %s = %s", model.tableName, ( model.overrideKey or "id" ), escape( db, overrideKeyValue or self.id ) )
+	local queryStr = Format( "DELETE FROM `%s` WHERE %s = %s", model.tableName, ( model.overrideKey or "id" ), escape( db, overrideKeyValue or self.id ) )
 	DBQuery( db, queryStr, function( )
 		self[model.overrideKey or "id"] = nil
 		def:Resolve( )
