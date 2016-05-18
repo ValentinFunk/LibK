@@ -27,7 +27,7 @@ LibK provides a few tools for database interaction:
 
 ## Basics
 This example shows a simple addon that will save player joins to the database. In any shared file: 
-```
+```lua
 -- Initialize the Addon
 LibK.InitializeAddon{
 	addonName = "MyAddon",                  --Name of the addon
