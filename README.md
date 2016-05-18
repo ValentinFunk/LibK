@@ -24,6 +24,39 @@ LibK provides a few tools for database interaction:
 - Load an addon after gamemode intialization
 - Wait until another addon has finished loading
 
+
+## Basics
+This example shows a simple addon that will save player joins to the database. In any shared file: 
+```
+-- Initialize the Addon
+LibK.InitializeAddon{
+	addonName = "MyAddon",                  --Name of the addon
+	author = "Kamshak",                     --Name of the author
+	luaroot = "myaddon",                    --Folder that contains the client/shared/server structure
+}
+LibK.SetupDatabase( "MyAddon", MyAddon )
+
+-- Create a Database Model
+MyAddon.PlayerJoins = class( "PlayerJoins" )
+MyAddon.PlayerJoins.static.DB = "MyAddon"
+MyAddon.PlayerJoins.static.model = {
+	tableName = "ps2_plyjoinstreak",
+	fields = {
+		playerId = "int",
+        	joinedTime = "createdTime" --automatically set to time this entry was created
+	}
+}
+MyAddon.PlayerJoins:include( DatabaseModel )
+
+-- Use It
+hook.Add( "LibK_PlayerInitialSpawn", "Save Player Join", function( ply )
+	local join = Pointshop2.PlayerJoins:new( )
+	join.playerId = ply.kPlayerId
+	join:save()
+end )
+
+```
+
 ## Addon Structure
 LibK suggests a simple addon structure that seperates code and divides code into shared, server and client folders.
 - addons
