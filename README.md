@@ -7,47 +7,22 @@ GMOD Lua Library for fast and simple development of database backed addons. Supp
   <img src="https://github.com/Kamshak/LibK/blob/master/logo.png?raw=true" alt="LibK Banner"/>
 </p>
 
-## Promises
-Promises by Lexic are used to allow for async coding and waiting for queries in an easy and structured manner. They are used throughout the library.
-
-Original Post:
-So, I made a [promises](http://wiki.commonjs.org/wiki/Promises/A) system for Lua.
-It works something like this:
-```lua
-require 'promises';
-
-function example()
-	local def = Deferred();
-	timer.Simple(10, function()
-		def:Resolve(21)
-	end);
-	return def:Promise();
-end
-
-example()
-	:Then(function(res)
-		local def = Deferred();
-		timer.Simple(10, function()
-			def:Resolve(res * 2);
-		end)
-		return def;
-	end)
-	:Done(print)
-	:Fail(function(err) print("oh no!", err); end)
--- 20s later it prints 42
-```
-Obviously that's a trivial example but [promises are great for async stuff](http://blog.parse.com/2013/01/29/whats-so-great-about-javascript-promises/).
-I basically just stole [jQuery's interface](http://api.jquery.com/jQuery.Deferred/), so if you've used it before, you know how to use this.
-
-## Middleclass
-For OOP the library uses middleclass (https://github.com/kikito/middleclass)
-Read the docs there for info on how to use it.
-
 ## Database
 LibK provides a few tools for database interaction:
-- Abstraction through models with support for SQLite and MySQL
+- Abstraction through models with support for SQLite and MySQL: **No mode manual query writing - No more SQL injection**
 - Possibility to set up a database connection very easily
 - Gurantee that every query will be executed, automatic reconnection on database connection interruption
+
+## Networking
+- Clients can start server transactions that are wrapped as a promise
+- Objects (i.e. clas instances) can be sent from server to client
+
+## Addon Loader
+- Easy loading by filename
+- Supports file ordering
+- No need to manually include files anymore
+- Load an addon after gamemode intialization
+- Wait until another addon has finished loading
 
 ## Addon Structure
 LibK suggests a simple addon structure that seperates code and divides code into shared, server and client folders.
@@ -217,4 +192,7 @@ end )
 end )
 ```
 
-Theres a lot more things that you can do, check the example code for more. Relationships are not covered here, you can make LibK automatically join tables though and specify a join depth etc.
+## References
+- Promises: [Introduction](http://blog.parse.com/2013/01/29/whats-so-great-about-javascript-promises/)
+- Middleclass: [Wiki](https://github.com/kikito/middleclass)
+- 
