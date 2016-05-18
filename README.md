@@ -34,6 +34,9 @@ LibK.InitializeAddon{
 	author = "Kamshak",                     --Name of the author
 	luaroot = "myaddon",                    --Folder that contains the client/shared/server structure
 }
+
+MyAddon = {}
+
 LibK.SetupDatabase( "MyAddon", MyAddon )
 
 -- Create a Database Model
