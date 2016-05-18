@@ -1,8 +1,11 @@
 LibK
 ====
 
-A set of functions designed to aid quick development and easy debugging of gmod addons.
-Contains an ORM
+GMOD Lua Library for fast and simple development of database backed addons. Support MySQL and SQLite with the same code.
+
+<p align="center">
+  <img src="https://github.com/Kamshak/LibK/blob/master/logo.png?raw=true" alt="LibK Banner"/>
+</p>
 
 ## Promises
 Promises by Lexic are used to allow for async coding and waiting for queries in an easy and structured manner. They are used throughout the library.
