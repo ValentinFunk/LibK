@@ -122,7 +122,7 @@ local function doLoadAddon( addonTable )
 				loadAddon( addonTable )
 				onAddonInitialized( addonTable.addonName )
 			end )
-			KLog( 4, LibK.consoleHeader( 80, "*", "Addon ".. name .. " will be loaded after gamemode init" ) )
+			KLog( 4, LibK.consoleHeader( 80, "*", "Addon ".. addonTable.addonName .. " will be loaded after gamemode init" ) )
 		else
 			loadAddon( addonTable )
 			onAddonInitialized( addonTable.addonName )

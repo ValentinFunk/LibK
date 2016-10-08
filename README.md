@@ -1,50 +1,64 @@
 LibK
 ====
 
-A set of functions designed to aid quick development and easy debugging of gmod addons.
-Contains an ORM
+GMOD Lua Library for fast and simple development of database backed addons. Support MySQL and SQLite with the same code.
 
-## Promises
-Promises by Lexic are used to allow for async coding and waiting for queries in an easy and structured manner. They are used throughout the library.
-
-Original Post:
-So, I made a [promises](http://wiki.commonjs.org/wiki/Promises/A) system for Lua.
-It works something like this:
-```lua
-require 'promises';
-
-function example()
-	local def = Deferred();
-	timer.Simple(10, function()
-		def:Resolve(21)
-	end);
-	return def:Promise();
-end
-
-example()
-	:Then(function(res)
-		local def = Deferred();
-		timer.Simple(10, function()
-			def:Resolve(res * 2);
-		end)
-		return def;
-	end)
-	:Done(print)
-	:Fail(function(err) print("oh no!", err); end)
--- 20s later it prints 42
-```
-Obviously that's a trivial example but [promises are great for async stuff](http://blog.parse.com/2013/01/29/whats-so-great-about-javascript-promises/).
-I basically just stole [jQuery's interface](http://api.jquery.com/jQuery.Deferred/), so if you've used it before, you know how to use this.
-
-## Middleclass
-For OOP the library uses middleclass (https://github.com/kikito/middleclass)
-Read the docs there for info on how to use it.
+<p align="center">
+  <img src="https://github.com/Kamshak/LibK/blob/master/logo.png?raw=true" alt="LibK Banner"/>
+</p>
 
 ## Database
 LibK provides a few tools for database interaction:
-- Abstraction through models with support for SQLite and MySQL
+- Abstraction through models with support for SQLite and MySQL: **No mode manual query writing - No more SQL injection**
 - Possibility to set up a database connection very easily
 - Gurantee that every query will be executed, automatic reconnection on database connection interruption
+
+## Networking
+- Clients can start server transactions that are wrapped as a promise
+- Objects (i.e. clas instances) can be sent from server to client
+
+## Addon Loader
+- Easy loading by filename
+- Supports file ordering
+- No need to manually include files anymore
+- Load an addon after gamemode intialization
+- Wait until another addon has finished loading
+
+
+## Basics
+This example shows a simple addon that will save player joins to the database. In any shared file: 
+```lua
+-- Initialize the Addon
+LibK.InitializeAddon{
+	addonName = "MyAddon",                  --Name of the addon
+	author = "Kamshak",                     --Name of the author
+	luaroot = "myaddon",                    --Folder that contains the client/shared/server structure
+}
+
+MyAddon = {}
+
+LibK.SetupDatabase( "MyAddon", MyAddon )
+
+-- Create a Database Model
+MyAddon.PlayerJoins = class( "PlayerJoins" )
+MyAddon.PlayerJoins.static.DB = "MyAddon"
+MyAddon.PlayerJoins.static.model = {
+	tableName = "ps2_plyjoinstreak",
+	fields = {
+		playerId = "int",
+        	joinedTime = "createdTime" --automatically set to time this entry was created
+	}
+}
+MyAddon.PlayerJoins:include( DatabaseModel )
+
+-- Use It
+hook.Add( "LibK_PlayerInitialSpawn", "Save Player Join", function( ply )
+	local join = Pointshop2.PlayerJoins:new( )
+	join.playerId = ply.kPlayerId
+	join:save()
+end )
+
+```
 
 ## Addon Structure
 LibK suggests a simple addon structure that seperates code and divides code into shared, server and client folders.
@@ -214,4 +228,29 @@ end )
 end )
 ```
 
-Theres a lot more things that you can do, check the example code for more. Relationships are not covered here, you can make LibK automatically join tables though and specify a join depth etc.
+## References
+- Promises: [Introduction](http://blog.parse.com/2013/01/29/whats-so-great-about-javascript-promises/)
+- Middleclass: [Wiki](https://github.com/kikito/middleclass)
+
+## License
+Copyright (c) 2016 Valentin Funk
+```
+The MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.```
