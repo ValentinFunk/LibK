@@ -163,3 +163,5 @@ AddCSLuaFile( "libk/3rdparty/png.lua" )
 --Semver.lua Lib by kikito. Licensed under the MIT License
 LibK.loadThirdparty( "version", "kikito", "libk/3rdparty", "", "semver.lua" )
 AddCSLuaFile( "libk/3rdparty/semver.lua" )
+
+print("LibK uses vnet by vercas (Copyright 2014 Alexandru-Mihai Maftei), MIT licensed")
