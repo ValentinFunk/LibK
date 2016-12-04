@@ -107,6 +107,7 @@ function LibK.createIsolatedEnvironment( tableName, virtualLua, virtualMain )
 	env.AddCSLuaFile = LibK.getAddCSLuaProxy( virtualLua )
 	env.CompileString = LibK.getCompileStringProxy( virtualLua, env )
 	env.include = isolatedInclude
+	env.DEBUG = LibK.Debug
 	env._filesIncluded = included
 	env._env = env
 	setfenv( isolatedInclude, env )
