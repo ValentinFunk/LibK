@@ -1,4 +1,4 @@
-include("vnet.lua")
+include("transfers/vnet.lua")
 
 GLib.Transfers = {}
 GLib.Transfers.InboundTransfers  = {}

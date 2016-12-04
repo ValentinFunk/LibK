@@ -43,11 +43,6 @@
 --]]
 
 
-
-if SERVER then
-	AddCSLuaFile()
-end
-
 if not hook or not hook.Add then require "hook" end
 if not net or not net.Receivers then require "net" end
 
