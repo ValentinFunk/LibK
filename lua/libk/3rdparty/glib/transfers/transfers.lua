@@ -1,3 +1,5 @@
+local vnet = GLib.vnet
+
 GLib.Transfers = {}
 GLib.Transfers.InboundTransfers  = {}
 GLib.Transfers.OutboundTransfers = {}
@@ -67,7 +69,8 @@ net.Receive ("glib_cancel_transfer",
 )
 
 vnet.Watch("glib_transfer", function(packet)
-	local userId = packet.Source and GLib.GetPlayerId (packet.Source) or "Server"
+	local userId = isbool(packet.Source) and "Server" or GLib.GetPlayerId (packet.Source)
+
 	local messageType = packet:Int ()
 	local transferId = packet:Int ()
 
@@ -134,7 +137,7 @@ vnet.Watch("glib_transfer", function(packet)
 			handler (inboundTransfer:GetSourceId (), inboundTransfer:GetData ())
 		end
 	end
-end, vnet.OPTION_WATCH_PURESTRING)
+end)
 
 local function HandleTransferRequest (userId, channelName, requestId, data)
 	local requestHandler = GLib.Transfers.RequestHandlers [channelName]
@@ -145,7 +148,7 @@ local function HandleTransferRequest (userId, channelName, requestId, data)
 		responseData = tostring (responseData)
 	end
 
-	local packet = vnet:CreateWritePacket("glib_transfer_request_response")
+	local packet = vnet.CreatePacket("glib_transfer_request_response")
 	packet:Int(requestId)
 
 	if requestAccepted then
@@ -168,7 +171,7 @@ local function HandleTransferRequest (userId, channelName, requestId, data)
 end
 
 vnet.Watch("glib_transfer_request", function(packet)
-	local userId = packet.Source and GLib.GetPlayerId (packet.Source) or "Server"
+	local userId = isbool(packet.Source) and "Server" or GLib.GetPlayerId (packet.Source)
 
 	local channelName = packet:String()
 	local requestId = packet:Int()
@@ -178,7 +181,7 @@ vnet.Watch("glib_transfer_request", function(packet)
 end )
 
 vnet.Watch("glib_transfer_request_response", function(packet)
-	local userId = packet.Source and GLib.GetPlayerId (packet.Source) or "Server"
+	local userId = isbool(packet.Source) and "Server" or GLib.GetPlayerId (packet.Source)
 
 	local requestId = packet:Int()
 	local requestAccepted = packet:Int() == 1
@@ -225,7 +228,7 @@ timer.Create ("GLib.Transfers", 1, 0,
 			else
 				local outBuffer = GLib.StringOutBuffer ()
 
-				local packet = vnet:CreateWritePacket("glib_transfer")
+				local packet = vnet.CreatePacket("glib_transfer")
 					if not outboundTransfer:IsStarted () then
 						packet:Int(1)
 						packet:Int(outboundTransfer:GetId ())
@@ -289,7 +292,7 @@ function GLib.Transfers.Request (userId, channelName, data)
 	else
 		data = data or ""
 
-		local packet = vnet:CreateWritePacket("glib_transfer_request")
+		local packet = vnet.CreatePacket("glib_transfer_request")
 			packet:String(channelName)
 			packet:Int(inboundTransfer:GetRequestId())
 			packet:String(data)

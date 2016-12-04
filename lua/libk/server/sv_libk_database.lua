@@ -270,7 +270,7 @@ function LibK.getDatabaseConnection( config, name )
 		if DB.CONNECTED_TO_MYSQL then
 			return DB.DoQuery( "SET FOREIGN_KEY_CHECKS = " .. ( bDisable and "0" or "1" ) )
 		else
-			return DB.DoQuery( "PRAGMA foreign_key_check = " .. ( bDisable and "OFF" or "ON" ) )
+			return DB.DoQuery( "PRAGMA foreign_keys = " .. ( bDisable and "OFF" or "ON" ) )
 		end
 	end
 
