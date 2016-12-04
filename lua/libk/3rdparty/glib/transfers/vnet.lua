@@ -133,8 +133,8 @@ local TYPE_STREAM_END = -1
 local NODE_SERVER = 255	--	1111 1111
 local NODE_STOP = 240	--	1111 0000
 
-vnet = {}
-local vnet = vnet
+GLib.vnet = {}
+local vnet = GLib.vnet
 
 
 
