@@ -1,5 +1,3 @@
-include("transfers/vnet.lua")
-
 GLib.Transfers = {}
 GLib.Transfers.InboundTransfers  = {}
 GLib.Transfers.OutboundTransfers = {}

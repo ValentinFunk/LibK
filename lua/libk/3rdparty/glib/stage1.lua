@@ -11,7 +11,7 @@ function GLib.AddCSLuaPackSystem (systemTableName) end
 
 if SERVER then
 	GLib.AddCSLuaFile = AddCSLuaFile
-	
+
 	function GLib.AddCSLuaFolder (folder, recursive)
 		GLib.Debug ("GLib : Adding " .. folder .. "/* to lua pack...")
 		GLib.EnumerateLuaFolder (folder, "LUA", GLib.AddCSLuaFile, recursive)
@@ -21,14 +21,14 @@ if SERVER then
 		GLib.Debug ("GLib : Adding " .. folder .. "/* to lua pack...")
 		GLib.EnumerateLuaFolder (folder, "LUA", GLib.AddCSLuaFile, true)
 	end
-	
+
 	function GLib.AddCSLuaPackFile (path, pathId)
 		GLib.Loader.PackFileManager:Write (
 			path,
 			GLib.Loader.Read (path, pathId or "LUA")
 		)
 	end
-	
+
 	function GLib.AddCSLuaPackFolder (folder, recursive)
 		local startTime = SysTime ()
 		GLib.EnumerateLuaFolder (folder, "LUA", GLib.AddCSLuaPackFile, recursive)
@@ -46,48 +46,48 @@ if SERVER then
 		end
 		GLib.Debug ("GLib : Adding " .. folder .. "/* to virtual lua pack... done (" .. GLib.Loader.PackFileManager:GetFileCount () .. " total files, " .. GLib.FormatDuration (SysTime () - startTime) .. ")")
 	end
-	
+
 	function GLib.AddCSLuaPackSystem (systemTableName)
 		GLib.Loader.PackFileManager:CreatePackFileSystem (systemTableName)
 		GLib.Loader.PackFileManager:SetCurrentPackFileSystem (systemTableName)
 		GLib.Loader.PackFileManager:AddSystemTable (systemTableName)
 	end
-	
+
 	function GLib.AddReloadCommand (includePath, systemName, systemTableName)
 		includePath = includePath or (systemName .. "/" .. systemName .. ".lua")
-		
-		
+
+
 		return reload
 	end
 end
 
 function GLib.AddReloadCommand (includePath, systemName, systemTableName)
 	includePath = includePath or (systemName .. "/" .. systemName .. ".lua")
-	
+
 	local function reload ()
 		local startTime = SysTime ()
 		GLib.UnloadSystem (systemTableName)
-		
+
 		if GLib then GLib.Loader.Include (includePath)
 		else include (includePath) end
-		
+
 		GLib.Debug (systemName .. "_reload took " .. tostring ((SysTime () - startTime) * 1000) .. " ms.")
 	end
-	
+
 	if SERVER then
 		concommand.Add (systemName .. "_reload_sv",
 			function (ply, _, arg)
 				if ply and ply:IsValid () and not ply:IsSuperAdmin () then return end
-				
+
 				reload ()
 			end
 		)
 		concommand.Add (systemName .. "_reload_sh",
 			function (ply, _, arg)
 				if ply and ply:IsValid () and not ply:IsSuperAdmin () then return end
-				
+
 				reload ()
-				
+
 				for _, ply in ipairs (player.GetAll ()) do
 					ply:ConCommand (systemName .. "_reload")
 				end
@@ -100,7 +100,7 @@ function GLib.AddReloadCommand (includePath, systemName, systemTableName)
 			end
 		)
 	end
-	
+
 	return reload
 end
 GLib.AddReloadCommand ("glib/glib.lua", "glib", "GLib")
@@ -122,7 +122,7 @@ function GLib.EnumerateDelayed (tbl, callback, finishCallback)
 			callback (key, value)
 			if not key then return end
 		end
-		
+
 		GLib.CallDelayed (timerCallback)
 	end
 	timerCallback ()
@@ -130,7 +130,7 @@ end
 
 function GLib.EnumerateFolder (folder, pathId, callback, recursive)
 	if not callback then return end
-	
+
 	local files, folders = GLib.Loader.Find (folder .. "/*", pathId)
 	for _, fileName in pairs (files) do
 		callback (folder .. "/" .. fileName, pathId)
@@ -164,9 +164,9 @@ end
 
 function GLib.Error (message)
 	message = tostring (message)
-	
+
 	local fullMessage = " \n\t" .. message .. "\n\t\t" .. string.gsub (GLib.StackTrace (nil, 1), "\n", "\n\t\t") .. "\n"
-	
+
 	ErrorNoHalt (fullMessage)
 end
 
@@ -184,7 +184,7 @@ local string_format = string.format
 local timeUnits = { "ns", "µs", "ms", "s", "ks", "Ms", "Gs", "Ts", "Ps", "Es", "Zs", "Ys" }
 function GLib.FormatDuration (duration)
 	duration = duration * 1000000000
-	
+
 	local unitIndex = 1
 	while duration >= 1000 and timeUnits [unitIndex + 1] do
 		duration = duration / 1000
@@ -215,17 +215,17 @@ function GLib.Initialize (systemName, systemTable)
 	if not systemTable then
 		GLib.Error ("GLib.Initialize : Called incorrectly.")
 	end
-	
+
 	setmetatable (systemTable, getmetatable (systemTable) or {})
 	if systemTable ~= GLib then
 		getmetatable (systemTable).__index = GLib
-		
+
 		for k, v in pairs (GLib) do
 			if type (v) == "table" then
 				-- Object static tables
 				local metatable = debug.getmetatable (v)
 				local ictorInvoker = metatable and metatable.__call or nil
-				
+
 				systemTable [k] = {}
 				if v.__static then systemTable [k].__static = true end
 				setmetatable (systemTable [k],
@@ -237,7 +237,7 @@ function GLib.Initialize (systemName, systemTable)
 			end
 		end
 	end
-	
+
 	GLib.EventProvider (systemTable)
 	systemTable:AddEventListener ("Unloaded", "GLib.Unloader",
 		function ()
@@ -246,14 +246,14 @@ function GLib.Initialize (systemName, systemTable)
 			end
 		end
 	)
-	
+
 	hook.Add ("ShutDown", tostring (systemName),
 		function ()
 			GLib.Debug ("Unloading " .. systemName .. "...")
 			systemTable:DispatchEvent ("Unloaded")
 		end
 	)
-	
+
 	GLib.CallDelayed (
 		function ()
 			hook.Call ("GLibSystemLoaded", GAMEMODE or GM, tostring (systemName))
@@ -267,15 +267,15 @@ function GLib.IncludeDirectory (folder, recursive)
 	local paths = { "LUA" }
 	if SERVER then paths [#paths + 1] = "LSV" end
 	if CLIENT and GetConVar ("sv_allowcslua"):GetBool () then paths [#paths + 1] = "LCL" end
-	
+
 	local folderListList = recursive and {} or nil
-	
+
 	for _, path in ipairs (paths) do
 		local files, folders = GLib.Loader.Find (folder .. "/*", path)
 		if recursive then
 			folderListList [#folderListList + 1] = folders
 		end
-		
+
 		for _, file in ipairs (files) do
 			if string.lower (string.sub (file, -4)) == ".lua" and
 			   not included [string.lower (file)] then
@@ -299,7 +299,7 @@ end
 
 function GLib.InvertTable (tbl, out)
 	out = out or {}
-	
+
 	local keys = {}
 	for key, _ in pairs (tbl) do
 		keys [#keys + 1] = key
@@ -307,7 +307,7 @@ function GLib.InvertTable (tbl, out)
 	for i = 1, #keys do
 		out [tbl [keys [i]]] = keys [i]
 	end
-	
+
 	return out
 end
 
@@ -328,7 +328,7 @@ function GLib.PrettifyString (str)
 			elseif char == "\t" then char = "\\t"
 			elseif char == "\"" then char = "\\\""
 			elseif char == "\'" then char = "\\\'" end
-			
+
 			out = out .. char
 		end
 	end
@@ -341,7 +341,7 @@ end
 
 function GLib.StackTrace (levels, frameOffset)
 	local stringBuilder = GLib.StringBuilder ()
-	
+
 	local frameOffset = frameOffset or 1
 	local exit = false
 	local i = 0
@@ -380,7 +380,7 @@ function GLib.UnloadSystem (systemTableName)
 		_G [systemTableName]:DispatchEvent ("Unloaded")
 	end
 	_G [systemTableName] = nil
-	
+
 	hook.Call ("GLibSystemUnloaded", GAMEMODE or GM, systemTableName)
 	hook.Call (systemTableName .. "Unloaded", GAMEMODE or GM)
 end
@@ -436,6 +436,7 @@ include ("io/outbuffer.lua")
 include ("io/stringinbuffer.lua")
 include ("io/stringoutbuffer.lua")
 
+include ("transfers/vnet.lua")
 include ("transfers/transfers.lua")
 include ("transfers/inboundtransfer.lua")
 include ("transfers/outboundtransfer.lua")
