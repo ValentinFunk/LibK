@@ -273,7 +273,6 @@ include ("geometry/parametriccurverenderer.lua")
 
 -- Interfaces
 GLib.Interfaces = {}
-include ("interfaces/interfaces.lua")
 
 -- Rendering
 GLib.Rendering = {}
