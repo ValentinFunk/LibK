@@ -60,6 +60,14 @@ function PermissionInterface.getRanks( )
 		end
 		return ranks
 	end
+	
+
+	if serverguard then
+		for internalName, rankInfo in pairs( serverguard.ranks.stored ) do
+			table.insert( ranks, { internalName = internalName, title = rankInfo.name } )
+		end
+		return ranks
+	end
 
 	return ranks
 end
