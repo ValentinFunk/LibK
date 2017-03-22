@@ -462,6 +462,7 @@ do
 				DestinationIndex = ind,
 			}
 
+			if not queue_outgoing[ind] then queue_outgoing[ind]={} end
 			local q = queue_outgoing[ind]
 			q[#q+1] = pck
 
@@ -469,14 +470,16 @@ do
 		end
 
 		enqueueMisc = function(ind, typ, val)
+			if not misc_outgoing[ind] then misc_outgoing[ind]={} end
 			misc_outgoing[ind][#misc_outgoing[ind]+1] = { typ, val }
 		end
 
 		local function peek(ind)
-			return queue_outgoing[ind][1]
+			return (queue_outgoing[ind] or {})[1]
 		end
 
 		local function dequeue(ind)
+			if not queue_outgoing[ind] then queue_outgoing[ind]={} end
 			local ret = queue_outgoing[ind][1]
 
 			table_remove(queue_outgoing[ind], 1)
@@ -490,6 +493,7 @@ do
 		end
 
 		local function dequeueMisc(ind)
+			if not misc_outgoing[ind] then misc_outgoing[ind]={} end
 			local ret = misc_outgoing[ind][1]
 
 			if ret then
@@ -523,6 +527,9 @@ do
 			for z = #allplys, 1, -1 do
 				local ply = allplys[z]
 				local ind = ply:EntIndex()
+				
+				if not queue_outgoing[ind] then queue_outgoing[ind]={} end
+				if not misc_outgoing[ind] then misc_outgoing[ind]={} end
 				local qc, tc, lf = queue_outgoing[ind], misc_outgoing[ind], lastFlushes[ind]
 
 				if (not lf or (nao - lf) > stepsize[ind]) and (#qc > 0 or #tc > 0) then
@@ -786,6 +793,8 @@ do
 
 		cancel_out = function(id, ply)
 			local ind = ply:EntIndex()
+			
+			if not queue_outgoing[ind] then queue_outgoing[ind]={} end
 			local qo = queue_outgoing[ind]
 
 			for i = 1, #qo do
