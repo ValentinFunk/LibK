@@ -20,7 +20,6 @@ function LibK.playerInitialSpawn( ply )
 			return
 		end
 
-		dpt( dbPlayer )
 		KLogf( 4, "[LibK] Player %s(id %i)", ply:Nick( ), dbPlayer.id )
 		ply.libk_originalNick = ply:Nick( )
 		ply.dbPlayer = dbPlayer
