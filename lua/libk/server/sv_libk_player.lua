@@ -2,6 +2,11 @@
 function LibK.playerInitialSpawn( ply )
 	LibK.Player.findByUid( ply:UniqueID( ) )
 	:Then( function( dbPlayer )
+		if not IsValid( ply ) then
+			-- Player disconnected during join, do nothing
+			return
+		end
+
 		if dbPlayer then
 			dbPlayer.name = ply:Nick( ) 
 			return dbPlayer:save( )
@@ -16,7 +21,7 @@ function LibK.playerInitialSpawn( ply )
 	end )
 	:Then( function( dbPlayer )
 		if not IsValid( ply ) then
-			-- Player crashed during join, do nothing
+			-- Player disconnected during join, do nothing
 			return
 		end
 
