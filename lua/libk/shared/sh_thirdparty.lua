@@ -157,6 +157,10 @@ AddCSLuaFile( "libk/3rdparty/von.lua" )
 LibK.loadThirdparty( "CircularQueue", "MDave", "libk/3rdparty", "", "circular_queue.lua" )
 AddCSLuaFile( "libk/3rdparty/circular_queue.lua" )
 
+-- UUID by Toby Jennings. Licensed under the MIT License
+LibK.loadThirdparty( "GetUUID", "Toby Jennings", "libk/3rdparty", "", "uuid.lua" )
+AddCSLuaFile( "libk/3rdparty/uuid.lua" )
+
 --PNG Lib by MDave. Licensed under the MIT License
 LibK.loadThirdparty( "png", "MDave", "libk/3rdparty", "", "png.lua" )
 AddCSLuaFile( "libk/3rdparty/png.lua" )
