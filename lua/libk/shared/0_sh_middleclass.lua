@@ -16,18 +16,18 @@ function PrintTable ( t, indent, done )
 	done = done or {}
 	indent = indent or 2
 	if indent == 2 and isObject( t ) then
-		print( "Object Instance " .. t.class.name )
+		print( "Object Instance " .. t.class.name .. "(" .. tostring(t) .. ")" )
 	end
-	
+
 	MsgN( string.rep (" ", indent - 2) .. "{" )
-	for key, value in pairs (t) do	
+	for key, value in pairs (t) do
 		Msg( string.rep (" ", indent) )
 		if ispanel(value) and not IsValid( value )then
 			Msg( tostring (key) .. " = " )
 			Msg( "NULL Panel(" .. type( value ) .. "\n" )
 		elseif isObject( value ) and not done[value] then
 			done [value] = true
-			Msg( tostring(key) .. ": Object Instance " .. value.class.name .. "\n" );
+			Msg( tostring(key) .. ": Object Instance " .. value.class.name .. "(" .. tostring(value) .. ")\n" );
 			PrintTable (value, indent + 2, done)
 		elseif ( istable(value) && !done[value] ) and key != "class" then
 			done [value] = true
@@ -42,7 +42,7 @@ function PrintTable ( t, indent, done )
 end
 
 -- middleclass.lua - v2.0 (2011-09)
--- Copyright (c) 2011 Enrique García Cota
+-- Copyright (c) 2011 Enrique Garcï¿½a Cota
 -- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 -- The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -81,7 +81,7 @@ local function _createClass(name, super)
 		klass = existingClass
 	end
   end
-  
+
   klass = klass or { name = name, super = super, static = {}, __mixins = {}, __instanceDict={} }
   klass.subclasses = setmetatable({}, {__mode = "k"})
 
@@ -129,7 +129,7 @@ end
 Object = _createClass("Object", nil)
 
 Object.static.__metamethods = { '__add', '__call', '__concat', '__div', '__le', '__lt',
-                                '__mod', '__mul', '__pow', '__sub', '__tostring', '__unm' }
+                                '__mod', '__mul', '__pow', '__sub', '__unm' }
 
 function Object.static:allocate()
   assert(_classes[self], "Make sure that you are using 'Class:allocate' instead of 'Class.allocate'")
@@ -164,8 +164,6 @@ function Object.static:include( ... )
 end
 
 function Object:initialize() end
-
-function Object:__tostring() return "instance of " .. tostring(self.class) end
 
 function class(name, super, ...)
   super = super or Object
