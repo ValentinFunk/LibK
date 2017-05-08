@@ -440,17 +440,11 @@ easing = {
 -- d = duration (total time)
 
 local tweens = {}
-
 function updateTweens( )
-	for k, v in pairs( tweens ) do
-		local elapsed = RealTime( ) - v.begin
-		local progress = v.method( elapsed, 0, 1, v.duration )
-		progress = math.Clamp( progress, 0, 1 ) --clamp to valid range
-		v.callback( progress )
-		if elapsed >= v.duration then
-			v.def:Resolve( )
-			tweens[k] = nil --finished
-		end
+	for k, tween in pairs( tweens ) do
+		if tween:update() then
+      tweens[k] = nil --finished
+    end
 	end
 end
 
@@ -462,13 +456,26 @@ hook.Add( "Think", "LibK_UpdateTweens", updateTweens )
 function LibK.tween( method, duration, callback )
 	local def = Deferred( )
 	
-	table.insert( tweens, {
+  local tweenInstance = {
 		method = method,
+    update = function(self)
+      local elapsed = RealTime( ) - self.begin
+      local progress = self.method( elapsed, 0, 1, self.duration )
+      progress = math.Clamp( progress, 0, 1 ) --clamp to valid range
+      self.callback( progress )
+      if elapsed >= self.duration then
+        if getPromiseState(self.def) == 'pending' then
+          self.def:Resolve( )
+        end
+        return true
+      end
+    end,
 		begin = RealTime( ),
 		duration = duration,
 		callback = callback, 
 		def = def
-	} )
+	}
+	table.insert( tweens, tweenInstance )
 	
-	return def:Promise( )
+	return def:Promise( ), tweenInstance
 end
