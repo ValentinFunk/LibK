@@ -223,7 +223,7 @@ function LibK.getDatabaseConnection( config, name )
 		DB.ConnectionPromise = Deferred()
 
 		local databaseObject = mysqloo.connect(host, username, password, database_name, database_port)
-		mysqloo.ConvertDatabase(databaseObject) -- Sets metatable to include convenience methods
+		LibK.mysqloolib.ConvertDatabase(databaseObject) -- Sets metatable to include convenience methods
 
 		if timer.Exists("libk_check_mysql_status") then timer.Destroy("libk_check_mysql_status") end
 

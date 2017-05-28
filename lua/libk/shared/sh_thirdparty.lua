@@ -149,6 +149,11 @@ end
 LibK.loadThirdparty( "luadata", "CapsAdmin", "libk/3rdparty", "", "luadata.lua" )
 AddCSLuaFile( "libk/3rdparty/luadata.lua" )
 
+--mysqloolib by Sly0r, GNU GENERAL PUBLIC LICENSE v2
+if SERVER then
+	LibK.loadThirdparty( "mysqloolib", "syl0r", "libk/3rdparty", "", "mysqloolib.lua" )
+end
+
 --vON by Vercas et al. Usage permitted if author is credited
 LibK.loadThirdparty( "von", "Vercas", "libk/3rdparty", "", "von.lua" )
 AddCSLuaFile( "libk/3rdparty/von.lua" )
