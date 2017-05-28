@@ -337,6 +337,8 @@ function LibK.getDatabaseConnection( config, name )
 		DB.Query( "PRAGMA foreign_keys = ON;" )
 		DB.DisableForeignKeyChecks( false )
 
+		DB.ConnectionPromise = Promise.Resolve()
+
 		-- Run hooks
 		hook.Call("LibK_DatabaseInitialized", nil, DB, name )
 	end
