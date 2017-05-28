@@ -220,13 +220,17 @@ function LibK.getDatabaseConnection( config, name )
 			return
 		end
 
+		DB.ConnectionPromise = Deferred()
+
 		local databaseObject = mysqloo.connect(host, username, password, database_name, database_port)
+		mysqloo.ConvertDatabase(databaseObject) -- Sets metatable to include convenience methods
 
 		if timer.Exists("libk_check_mysql_status") then timer.Destroy("libk_check_mysql_status") end
 
 		databaseObject.onConnectionFailed = function(_, msg)
 			KLogf( 1, "[LibK] Connection failed to %s(%s@%s:%s): %s", name, username, host, database_port, msg )
 			hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, tostring( msg ) )
+			DB.ConnectionPromise:Reject(tostring(msg))
 		end
 
 		databaseObject.onConnected = function()
@@ -253,8 +257,10 @@ function LibK.getDatabaseConnection( config, name )
 			end)
 			DB.IsConnected = true
 			hook.Call("LibK_DatabaseInitialized", nil, DB, name )
+			DB.ConnectionPromise:Resolve()
 		end
 		databaseObject:connect()
+
 		DB.MySQLDB = databaseObject
 	end
 
@@ -309,6 +315,14 @@ function LibK.getDatabaseConnection( config, name )
 				end
 				return false
 			end )
+		end
+	end
+
+	function DB.Transaction()
+		if DB.CONNECTED_TO_MYSQL then
+			return LibK.TransactionMysql:new(DB)
+		else
+			return LibK.TransactionSqlite:new(DB)
 		end
 	end
 
