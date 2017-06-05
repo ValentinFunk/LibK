@@ -24,7 +24,11 @@ function LibK.getDatabaseConnection( config, name )
 				hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, "MySQLOO is not installed properly" )
 			end
 		else
-			KLog( 4, "[LibK] MysqlOO is correctly installed." )
+			if (mysqloo.VERSION != "9" || !mysqloo.MINOR_VERSION || tonumber(mysqloo.MINOR_VERSION) < 3) then
+				hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, "You are using an outdated mysqloo version\nDownload the latest mysqloo9 from here: bit.ly/mysqloo" )
+			else
+				KLog( 4, "[LibK] MysqlOO is correctly installed." )
+			end
 		end
 	end
 
