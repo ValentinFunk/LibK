@@ -4,7 +4,6 @@ resource.AddFile( "resource/fonts/segui.ttf" )
 resource.AddFile( "resource/fonts/seguil.ttf" )
 resource.AddFile( "resource/fonts/seguisl.ttf" )
 resource.AddFile( "resource/fonts/seguisb.ttf" )
-resource.AddFile( "resource/fonts/CAMBRIA.TTC" )
 
 --Used to ensure something runs after Initialize
 LibK.InitializePromise = Deferred( )
