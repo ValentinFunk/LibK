@@ -224,8 +224,6 @@ function LibK.getDatabaseConnection( config, name )
 			return
 		end
 
-		DB.ConnectionPromise = Deferred()
-
 		local databaseObject = mysqloo.connect(host, username, password, database_name, database_port)
 		LibK.mysqloolib.ConvertDatabase(databaseObject) -- Sets metatable to include convenience methods
 
@@ -261,7 +259,12 @@ function LibK.getDatabaseConnection( config, name )
 			end)
 			DB.IsConnected = true
 			hook.Call("LibK_DatabaseInitialized", nil, DB, name )
-			DB.ConnectionPromise:Resolve()
+
+			-- Don't resolve the initial connection promise
+			-- on reconnect.
+			if getPromiseState(DB.ConnectionPromise) == 'pending' then
+				DB.ConnectionPromise:Resolve()
+			end
 		end
 		databaseObject:connect()
 
@@ -331,6 +334,9 @@ function LibK.getDatabaseConnection( config, name )
 	end
 
 	DATABASES[name] = DB
+	
+	DB.ConnectionPromise = Deferred()
+	
 	if config.UseMysql then
 		KLogf( 4, "Connecting to %s@%s db: %s", config.User, config.Host, config.Database )
 		DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
@@ -341,7 +347,7 @@ function LibK.getDatabaseConnection( config, name )
 		DB.Query( "PRAGMA foreign_keys = ON;" )
 		DB.DisableForeignKeyChecks( false )
 
-		DB.ConnectionPromise = Promise.Resolve()
+		DB.ConnectionPromise:Resolve()
 
 		-- Run hooks
 		hook.Call("LibK_DatabaseInitialized", nil, DB, name )
