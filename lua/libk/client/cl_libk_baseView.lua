@@ -25,7 +25,7 @@ local function processNetTable( netTable )
 		if isUnresolvedObject( v ) then
 			local class = getClass(v._classname)
 			if not class or not type( class ) == "table" then
-				return false, "Invalid class in StartViewCall: " .. v._classname
+				return false, v._classname -- Invalid class in StartViewCall: %s
 			end
 			local instance = class:new( )
 			
@@ -66,9 +66,23 @@ net.Receive( "StartView", function( len )
 	end
 
 	--Scan for and Replace class net tables with class instances
-	local success, err = processNetTable( vars )
-	if err then
-		error( "Error when decoding call " .. viewClass .. ":" .. func .. " -> " .. err )
+	local success, errClass = processNetTable( vars )
+	if errClass then
+		local errorText = "Error when decoding call " .. viewClass .. ":" .. func .. " -> Invalid class in StartViewCall: " .. errClass
+		
+		-- Try calling error handler
+		local viewClass = getClass( viewClass )
+		if not viewClass or not type( viewClass ) == "table" then
+			error( errorText .. "\nAdditional Error notifying View: Invalid viewConstructor in NetInstance: " .. viewClass or "No Viewclass given" )
+		end
+
+		local view = viewClass:getInstance( )
+		if view and view.HandleDecodeError then
+			view:HandleDecodeError( func, errClass )
+			return
+		end
+		
+		error( errorText )
 	end
 	
 	--Debug log
@@ -79,7 +93,7 @@ net.Receive( "StartView", function( len )
 	KLogf( 4, "%s:%s( %s ) len %i", viewClass, func, table.concat( argStrs, " ," ), len )
 
 	--Done, start the view
-	local viewClass = getClass(viewClass)
+	local viewClass = getClass( viewClass )
 	if not viewClass or not type( viewClass ) == "table" then
 		error( "Invalid viewConstructor in NetInstance: " .. viewClass or "No Viewclass given" )
 	end

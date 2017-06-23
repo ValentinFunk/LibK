@@ -381,19 +381,21 @@ function DatabaseModel:included( class )
 
 					--Check for override class
 					for fieldname, fieldtype in pairs( targetClassModel.fields ) do
-						if not row[relName .. "." .. fieldname] then
+						local className = row[relName .. "." .. fieldname] 
+						if not className then
 							continue
 						end
 						--SQLite NULL
-						if not DATABASES[class.DB].CONNECTED_TO_MYSQL and row[relName .. "." .. fieldname] == "NULL" then
+						if not DATABASES[class.DB].CONNECTED_TO_MYSQL and className == "NULL" then
 							continue
 						end
 
 						if fieldtype == "classname" then
-							constructor = getClass( row[relName .. "." .. fieldname] )
+							constructor = getClass( className )
 							if not constructor then
 								PrintTable( row )
-								error( "Invalid class " .. row[relName .. "." .. fieldname] .. " for " .. class.name .. " id " .. row[relName .. ".id"] )
+								hook.Run( "LibK_InvalidClassError", class, className, row, relName )								
+								error( "Invalid class " .. className .. " for " .. class.name .. " id " .. row[relName .. ".id"] )
 							end
 						end
 					end
@@ -771,9 +773,7 @@ function DatabaseModel:save( )
 	if self.preSave then
 		promise = self:preSave( )
 	else
-		local def = Deferred( )
-		def:Resolve( )
-		promise = def:Promise( )
+		promise = Promise.Resolve()
 	end
 
 	return promise:Then( function( )
