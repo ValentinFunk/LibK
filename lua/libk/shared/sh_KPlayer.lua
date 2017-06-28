@@ -18,12 +18,15 @@ LibK.Player.static.model = {
 
 LibK.Player:include( DatabaseModel )
 
-function LibK.Player.static.findPlayers( subject, attribute )
-	local def = Deferred( )
+function LibK.Player.static.findPlayers( subject, attribute, limit )
 	if not LibK.Player.model.fields[attribute] then
-		def:Reject( 1, "Invalid attribute " .. attribute )
-		return def:Promise( )
+		return Promise.Reject( 1, "Invalid attribute " .. attribute )
 	end
+
+	subject = "%%" .. subject .. "%%"
+	subject = DATABASES[LibK.Player.DB].SQLStr( subject )
 	
-	return LibK.Player.getDbEntries( Format( 'WHERE %s LIKE "%%%s%%"', attribute, subject ) )
+	limit = limit or 10
+
+	return LibK.Player.getDbEntries( Format( 'WHERE `%s` LIKE %s LIMIT %i', attribute, subject, limit ) )
 end
