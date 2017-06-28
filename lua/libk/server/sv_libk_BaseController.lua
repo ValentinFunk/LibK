@@ -53,7 +53,7 @@ net.Receive( "LibK_Transaction", function( len, ply )
 	
 	local controllerClass = getClass(controller)
 	if not controllerClass then 
-		error( "Got action request for invalid controller " .. controller )
+		error( "Got action request for invalid controller " .. controller .. " (" .. tostring(action) .. ")" )
 	end
 	local instance = controllerClass:getInstance( )
 
@@ -126,7 +126,7 @@ net.Receive( "ControllerAction", function( len, ply )
 	
 	local controllerClass = getClass(controller)
 	if not controllerClass then 
-		error( "Got action request for invalid controller " .. controller )
+		error( "Got action request for invalid controller " .. controller .. " (" .. tostring(action) .. ")" )
 	end
 	local instance = controllerClass:getInstance( )
 

@@ -95,7 +95,7 @@ net.Receive( "StartView", function( len )
 	--Done, start the view
 	local viewClass = getClass( viewClass )
 	if not viewClass or not type( viewClass ) == "table" then
-		error( "Invalid viewConstructor in NetInstance: " .. viewClass or "No Viewclass given" )
+		error( "Invalid viewConstructor in NetInstance: " .. ( viewClass or "No Viewclass given" ) )
 	end
 	
 	local view = viewClass:getInstance( )
