@@ -486,7 +486,7 @@ function DatabaseModel:included( class )
 						:Then( function( )
 						end,
 						function( errid, err )
-							return 0, "Error in postLoad Callback, Model " .. v.class.name .. " id " .. v.class.id .. " Error: " .. errid .. ": " .. err
+							return 0, "Error in postLoad Callback, Model " .. v.class.name .. " id " .. v.class.id .. " Error: " .. tostring(errid) .. ": " .. tostring(err)
 						end )
 						promise.desc = "PostLoad of model " .. v.class.name
 						table.insert( callbackPromises, promise )
