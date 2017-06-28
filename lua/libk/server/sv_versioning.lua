@@ -122,9 +122,9 @@ function LibK.updateAddon( addonTable )
 
 		return chainedPromise
 	end)
-	:Done( function()
-		LibK.storeAddonVersion( addonTable, newVersion )
+	:Then( function()
 		local head = Format( "All Done", addonTable.addonName, version, newVersion )
 		KLog( 4, LibK.consoleHeader( 80, "=", head ) )
+		return LibK.storeAddonVersion( addonTable, newVersion )
 	end )
 end
