@@ -10,6 +10,7 @@ local function addCSLua( luaroot )
 		addCSLua( luaroot .. "/" .. folder )
 	end
 end
+LibK.AddCSLuaDir = addCSLua
 
 local function loadFolder( luaroot, spaces )
 	spaces = spaces or 4
