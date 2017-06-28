@@ -15,6 +15,14 @@ LibK.InitPostEntityPromise = Deferred( )
 hook.Add( "InitPostEntity", "LibK_InitPostEntity", function( )
 	LibK.InitPostEntityPromise:Resolve( )
 end )
+hook.Add( "OnReloaded", "LibK_InitPostEntity", function()
+	if getPromiseState(LibK.InitPostEntityPromise) == "pending" then
+		LibK.InitPostEntityPromise:Resolve( )
+	end
+	if getPromiseState(LibK.InitializePromise) == "pending" then
+		LibK.InitializePromise:Resolve( )
+	end
+end )
 
 /*
 	Main function all plugins should use to initialize LibK Database/Model use.
