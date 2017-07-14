@@ -16,10 +16,14 @@ end
     e.g. LibK.DermaInherits()
 ]]--
 function LibK.DermaInherits(aControlName, controlName)
+    if aControlName == controlName then
+        return true
+    end
+
     local parentName = derma.Controls[aControlName].BaseClass
     local parent = derma.Controls[parentName]
-    while parent and not endOfChain() do
-        if parent == controlName then
+    while parent and not endOfChain(parent) do
+        if parentName == controlName then
             return true
         end
 
