@@ -740,7 +740,7 @@ function DatabaseModel:getFieldForDb( fieldname )
 	end
 end
 
-function DatabaseModel:remove( )
+function DatabaseModel:remove( keepId )
 	KLog( 4, self.class.name .. ":remove( )" )
 	local db = self.class.static.DB
 	local model = self.class.static.model
@@ -754,7 +754,9 @@ function DatabaseModel:remove( )
 	local overrideKeyValue = ( model.overrideKey and self[model.overrideKey] ) or nil
 	local queryStr = Format( "DELETE FROM `%s` WHERE %s = %s", model.tableName, ( model.overrideKey or "id" ), escape( db, overrideKeyValue or self.id ) )
 	DBQuery( db, queryStr, function( )
-		self[model.overrideKey or "id"] = nil
+		if not keepId then
+			self[model.overrideKey or "id"] = nil
+		end
 		def:Resolve( )
 	end, function( )
 		def:Reject( 0, "SQL Error" )
@@ -763,86 +765,84 @@ function DatabaseModel:remove( )
 	return def:Promise( )
 end
 
+function DatabaseModel:getSaveSql()
+	KLog( 4, self.class.name .. ":save( )" )
+	local db = self.class.static.DB
+	local model = self.class.static.model
+
+	if self.id then
+		--Update Entry
+		local query = { string.format( "UPDATE `%s` SET ", model.tableName ) }
+		local fieldsPart = {}
+		for fieldname, fieldtype in pairs( model.fields ) do
+			if fieldtype == "createdTime" or fieldtype == "id" then
+				continue
+			end
+			if fieldtype == "updatedTime" then
+				if DATABASES[db].CONNECTED_TO_MYSQL then
+					table.insert( fieldsPart, string.format( "`%s` = NOW()", fieldname ) )
+				else
+					table.insert( fieldsPart, string.format( "`%s` = DATETIME('now')", fieldname ) )
+				end
+				continue
+			end
+			table.insert( fieldsPart, string.format( "`%s` = %s", fieldname, self:getFieldForDb( fieldname ) ) )
+		end
+
+		table.insert( query, table.concat( fieldsPart, "," ) )
+		local overrideKeyValue = ( model.overrideKey and self[model.overrideKey] ) or nil
+		table.insert( query, string.format( "WHERE `" .. ( model.overrideKey or "id" ) .."` = %s", escape( db, overrideKeyValue or self.id ) ) )
+		local sqlStr = table.concat( query, " " )
+
+		return sqlStr
+	else
+		local query = { string.format( "INSERT INTO `%s` (", model.tableName ) }
+		local fieldsPart = {}
+		local valuesPart = {}
+		for fieldname, fieldtype in pairs( model.fields ) do
+			if fieldtype == "id" then
+				continue
+			end
+			if fieldtype == "createdTime" or fieldtype == "updatedTime" then
+				table.insert( fieldsPart, string.format( "`%s`", fieldname ) )
+				if DATABASES[db].CONNECTED_TO_MYSQL then
+					table.insert( valuesPart, "NOW()" )
+				else
+					table.insert( valuesPart, "DATETIME('now')" )
+				end
+				continue
+			end
+			table.insert( fieldsPart, "`" .. fieldname .. "`" )
+			table.insert( valuesPart, self:getFieldForDb( fieldname ) )
+		end
+		table.insert( query, table.concat( fieldsPart, "," ) )
+		table.insert( query, ") VALUES (" )
+		table.insert( query, table.concat( valuesPart, "," ) )
+		table.insert( query, ")" )
+
+		return table.concat( query, " " )
+	end
+end
+
 function DatabaseModel:save( )
 	KLog( 4, self.class.name .. ":save( )" )
 	local db = self.class.static.DB
 
-	local model = self.class.static.model
-
-	local promise
-	if self.preSave then
-		promise = self:preSave( )
-	else
-		promise = Promise.Resolve()
-	end
-
-	return promise:Then( function( )
-		local def = Deferred( )
-
+	local query = self:getSaveSql()
+	return Promise.Resolve():Then(function()
+		if self.preSave then
+			return self:preSave( )
+		end
+	end):Then(function()
 		if self.id then
-			--Update Entry
-			local query = { string.format( "UPDATE `%s` SET ", model.tableName ) }
-			local fieldsPart = {}
-			for fieldname, fieldtype in pairs( model.fields ) do
-				if fieldtype == "createdTime" or fieldtype == "id" then
-					continue
-				end
-				if fieldtype == "updatedTime" then
-					if DATABASES[db].CONNECTED_TO_MYSQL then
-						table.insert( fieldsPart, string.format( "`%s` = NOW()", fieldname ) )
-					else
-						table.insert( fieldsPart, string.format( "`%s` = DATETIME('now')", fieldname ) )
-					end
-					continue
-				end
-				table.insert( fieldsPart, string.format( "`%s` = %s", fieldname, self:getFieldForDb( fieldname ) ) )
-			end
-
-			table.insert( query, table.concat( fieldsPart, "," ) )
-			local overrideKeyValue = ( model.overrideKey and self[model.overrideKey] ) or nil
-			table.insert( query, string.format( "WHERE `" .. ( model.overrideKey or "id" ) .."` = %s", escape( db, overrideKeyValue or self.id ) ) )
-			local sqlStr = table.concat( query, " " )
-
-			DBQuery( db, sqlStr, function( )
-				def:Resolve( self )
-			end,
-			function( )
-				def:Reject( 0, "SQL Error" )
-			end )
+			return DATABASES[db].DoQuery(query):Then(function() 
+				return self 
+			end)
 		else
-			local query = { string.format( "INSERT INTO `%s` (", model.tableName ) }
-			local fieldsPart = {}
-			local valuesPart = {}
-			for fieldname, fieldtype in pairs( model.fields ) do
-				if fieldtype == "id" then
-					continue
-				end
-				if fieldtype == "createdTime" or fieldtype == "updatedTime" then
-					table.insert( fieldsPart, string.format( "`%s`", fieldname ) )
-					if DATABASES[db].CONNECTED_TO_MYSQL then
-						table.insert( valuesPart, "NOW()" )
-					else
-						table.insert( valuesPart, "DATETIME('now')" )
-					end
-					continue
-				end
-				table.insert( fieldsPart, "`" .. fieldname .. "`" )
-				table.insert( valuesPart, self:getFieldForDb( fieldname ) )
-			end
-			table.insert( query, table.concat( fieldsPart, "," ) )
-			table.insert( query, ") VALUES (" )
-			table.insert( query, table.concat( valuesPart, "," ) )
-			table.insert( query, ")" )
-
-			local sqlStr = table.concat( query, " " )
-			DBQuery( db, sqlStr, function( data, lastInsertId )
+			return DATABASES[db].DoQuery(query):Then( function(data, lastInsertId) 
 				self.id = tonumber( lastInsertId )
-				def:Resolve( self )
-			end, function( )
-				def:Reject( 0, "SQL Error" )
+				return self
 			end )
 		end
-
-		return def:Promise( )
-	end )
+	end)
 end

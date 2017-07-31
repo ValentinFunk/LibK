@@ -12,17 +12,19 @@ function TransactionMysql:begin()
     end
 
     self.waitUntilConnected = self.waitUntilConnected:Then(function()
-        self.transaction = db:createTransaction()
+        self.transaction = self.db:createTransaction()
     end)
 end
 
-function TransactionMysql:add(query)
-    self.waitUntilConnected:Then(function() 
+function TransactionMysql:add(str)
+    local def = Deferred()
+    return self.waitUntilConnected:Then(function() 
         if not self.transaction then
             LibK.GLib.Error("TransactionMysql: Cannot add query, begin() was not called")
         end
-
-        self.transaction:Query(query)
+        local query = self.db:query(str)
+	    self.transaction:addQuery(query)
+        return query
     end)
 end
 
@@ -61,7 +63,7 @@ function TransactionSqlite:begin()
     self.errored = false
 end
 
-function TransactionSqlite:add(query)
+function TransactionSqlite:add(sqlText)
     if not self.deferred then
         LibK.GLib.Error("TransactionSqlite: Cannot add query, begin() was not called")
     end
