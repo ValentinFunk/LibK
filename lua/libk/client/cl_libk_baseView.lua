@@ -1,5 +1,7 @@
 NETINSTANCES = {}
 
+local vnet = LibK.GLib.vnet
+
 local function createClassInstance( netTable, _classInstanceTables )
 	_classInstanceTables = _classInstanceTables or {}
 	local constructor = getClass(netTable._classname)
@@ -55,14 +57,14 @@ local function processNetTable( netTable )
 end
 LibK.processNetTable = processNetTable
 
-net.Receive( "StartView", function( len )
-	local viewClass, vars, func
-	if LibK.CompressNet then
-		local len = net.ReadUInt( 32 )
-		local data = LibK.von.deserialize( util.Decompress( net.ReadData( len ) ) )
-		viewClass, vars, func = data[1], data[2], data[3]
-	else
-		viewClass, vars, func = net.ReadString( ), net.ReadTable( ), net.ReadString( )
+vnet.Watch( "LibK_StartView", function( packet )
+	local len = packet.Size
+
+	local viewClass = packet:String( )
+	local func = packet:String()
+	local vars = packet:Table()
+	if not vars then
+		LibK.GLib.Error("Invalid StartView " + viewClass + ":" + func + " - Invalid vars passed")
 	end
 
 	--Scan for and Replace class net tables with class instances
@@ -90,7 +92,7 @@ net.Receive( "StartView", function( len )
 	for k, v in pairs( vars ) do
 		table.insert( argStrs, tostring( v ) )
 	end
-	KLogf( 4, "%s:%s( %s ) len %i", viewClass, func, table.concat( argStrs, " ," ), len )
+	KLogf( 4, "%s:%s( %s ) len %i, Compressed: %s", viewClass, func, table.concat( argStrs, " ," ), len, packet.Compressed )
 
 	--Done, start the view
 	local viewClass = getClass( viewClass )
@@ -104,7 +106,7 @@ net.Receive( "StartView", function( len )
 		error( "Invalid function for view " .. viewClass.name .. ":" .. func )
 	end
 	view[func]( view, unpack( vars ) )
-end )
+end, { vnet.OPTION_WATCH_OVERRIDE } )
 
 BaseView = {}
 

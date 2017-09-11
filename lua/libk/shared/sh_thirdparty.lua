@@ -129,11 +129,11 @@ function LibK.loadThirdparty( tableName, author, virtualLua, virtualMain, mainFi
 end
 
 --GLib created by !cake, used with permission.
+LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
 if file.Exists( "autorun/glib.lua", "LUA" ) then
 	include( "autorun/glib.lua" )
+	GLib.vnet = LibK.GLib.vnet
 	LibK.GLib = GLib
-else
-	LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
 end
 
 --Gooey by !cake

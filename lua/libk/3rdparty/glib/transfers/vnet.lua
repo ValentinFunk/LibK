@@ -1855,7 +1855,7 @@ writevar = function(v, f, d)
 			f:WriteFloat(v.y)
 			f:WriteFloat(v.z)
 		else
-			error("cannot write value of type '" .. type(v) .. "'!")
+			GLib.Error("cannot write value of type '" .. type(v) .. "'!")
 		end
 	end
 end

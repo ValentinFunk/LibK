@@ -1,5 +1,6 @@
 CONTROLLERS = {}
 BaseController = { }
+local vnet = LibK.GLib.vnet
 
 function BaseController:included( class )
 	function class.static.getInstance( class )
@@ -17,7 +18,7 @@ function BaseController:reportError( view, ply, strDesc, errid, err )
 	end
 end
 
-util.AddNetworkString( "StartView" )
+util.AddNetworkString( "LibK_StartView" )
 function BaseController:startView( viewName, func, target,  ... )
 	--Prepare the data
 	local vars = { ... }
@@ -28,19 +29,12 @@ function BaseController:startView( viewName, func, target,  ... )
 		error( "Invalid arg #3 to startView, player/playerTable expected, got " .. type( target ), 2 )
 	end
 	
-	if LibK.CompressNet then
-		local data = util.Compress( LibK.von.serialize( { viewName, netTable, func } ) )
-		net.Start( "StartView" )
-			net.WriteUInt( #data, 32 )
-			net.WriteData( data, #data )
-		net.Send( target )
-	else
-		net.Start( "StartView" )
-			net.WriteString( viewName )
-			net.WriteTable( netTable )
-			net.WriteString( func )
-		net.Send( target )
-	end
+	local packet = vnet.CreatePacket("LibK_StartView")
+	packet:String(viewName)
+	packet:String(func)
+	packet:Table(netTable)
+	packet:AddTargets(target)
+	packet:Send()
 end
 
 util.AddNetworkString( "LibK_Transaction" )
