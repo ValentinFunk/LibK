@@ -246,9 +246,10 @@ end
 --Kamshak
 
 -- Waits for all promises to be finished, when one errors it rejects, else it returns the results in order
-function WhenAllFinished( tblPromises )
+function WhenAllFinished( tblPromises, options )
 	local def = Deferred( )
 	local results = {}
+	local options = options or {}
 
 	if #tblPromises == 0 then
 		--No promises so we finished already?
@@ -283,7 +284,11 @@ function WhenAllFinished( tblPromises )
 				end
 			end
 			if allDone then
-				def:Resolve( unpack( results ) )
+				if options.noUnpack then
+					def:Resolve( results )
+				else
+					def:Resolve( unpack( results ) )
+				end
 			end
 		end )
 		v:Fail( function( ... )
