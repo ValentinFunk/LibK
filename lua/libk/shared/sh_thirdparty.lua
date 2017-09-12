@@ -130,10 +130,11 @@ end
 
 --GLib created by !cake, used with permission.
 LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
-if file.Exists( "autorun/glib.lua", "LUA" ) then
+if file.Exists( "autorun/glib.lua", "LUA" ) and not LibK.__GLib_included then
 	include( "autorun/glib.lua" )
 	GLib.vnet = LibK.GLib.vnet
 	LibK.GLib = GLib
+	LibK.__GLib_included = true
 end
 
 --Gooey by !cake
