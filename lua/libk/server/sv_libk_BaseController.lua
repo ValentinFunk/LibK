@@ -137,12 +137,13 @@ net.Receive( "ControllerAction", function( len, ply )
 		if LibK.Debug then
 			instance[action]( instance, ply, unpack( args ) )
 		else
-			local succ, err = pcall( instance[action], instance, ply, unpack( args ) )
+			local succ, err = xpcall( instance[action], function()
+				return debug.traceback()
+			end, instance, ply, unpack( args ) )
 			if not succ then
 				def:Reject( 1, "Internal Server Errror" )
 				KLogf( 1, "LUA Error in Controller " .. controller .. " action " .. action .. ":\n" )
 				KLogf( 1, err )
-				debug.Trace( )
 			end
 		end
 		
