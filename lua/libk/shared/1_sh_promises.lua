@@ -313,22 +313,22 @@ function ispromise( val )
 end
 
 -- Maps promises to results and resolves to the map when finished
-function Promise.Map( tbl, iterator )
+function Promise.Map( tbl, mapFn )
+	local opts = opts or {}
     local promises = {}
     for k, v in pairs( tbl ) do
         local promise = Promise.Resolve()
         :Then( function( )
             if ispromise( v ) then
-                return v:Then( iterator )
+                return v:Then( mapFn )
             end
-            return iterator( v )
+            return mapFn( v )
         end )
 
         table.insert( promises, promise )
     end
-    return WhenAllFinished( promises ):Then( function( ... )
-        return {...}
-    end )
+
+    return WhenAllFinished( promises, { noUnpack = true } )
 end
 
 
