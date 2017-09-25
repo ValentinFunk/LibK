@@ -710,9 +710,10 @@ function DatabaseModel:getFieldForDb( fieldname )
 	local model = self.class.static.model
 	if model.fields[fieldname] == "table" then
 		local json
-		if self.saveFields or model.saveFields then --only specified fields
+		local saveFields = self.saveFields or model.saveFields
+		if saveFields then --only specified fields
 			local tbl = {}
-			for k, v in pairs( self.saveFields ) do
+			for k, v in pairs( saveFields ) do
 				tbl[v] = self[v]
 			end
 			json = util.TableToJSON( tbl )
