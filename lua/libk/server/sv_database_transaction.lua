@@ -87,5 +87,5 @@ function TransactionSqlite:commit()
         self.deferred:Resolve()
     end
 
-    return def:Promise()
+    return self.deferred:Promise()
 end

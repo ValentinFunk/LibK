@@ -129,12 +129,24 @@ function LibK.loadThirdparty( tableName, author, virtualLua, virtualMain, mainFi
 end
 
 --GLib created by !cake, used with permission.
-LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
 if file.Exists( "autorun/glib.lua", "LUA" ) and not LibK.__GLib_included then
+	-- Include glib that's present
 	include( "autorun/glib.lua" )
-	GLib.vnet = LibK.GLib.vnet
-	LibK.GLib = GLib
+
+	if GLib.__LibK_Patched then
+		-- This is LibK's patched glib, all good
+		LibK.GLib = GLib
+	else
+		-- Load LibK GLib in fenv, then patch GLib's vnet
+		ErrorNoHalt( "WARNING: You have an non-libk GLib installed. We are patching it now. Errors could happen.")
+		LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
+		GLib.vnet = LibK.GLib.vnet -- Add vnet
+		LibK.GLib = GLib
+	end
+
 	LibK.__GLib_included = true
+else
+	LibK.loadThirdparty( "GLib", "!cake", "libk/3rdparty", "glib", "glib.lua" )
 end
 
 --Gooey by !cake
