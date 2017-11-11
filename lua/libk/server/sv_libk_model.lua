@@ -64,84 +64,20 @@ end
 
 
 local function initializeTable( class )
-	local model = class.static.model
 	if not class.DB then
-		def:Reject( -1, Format( "Model %s does not have a database", class.name ) )
-		return def:Promise( )
+		return Promise.Reject( -1, Format( "Model %s does not have a database", class.name ) )
 	end
 	local database = DATABASES[class.DB]
 	if not database then
-		local def = Deferred( )
-		def:Reject( -2, "Database " .. class.DB .. " has not been initialized" )
-		return def:Promise( )
+		return Promise.Reject( -2, "Database " .. class.DB .. " has not been initialized" )
 	end
 
-	local query = string.format( "CREATE TABLE IF NOT EXISTS `%s` (", model.tableName )
-	local fieldsPart = {}
-	for fieldname, fieldtype in pairs( model.fields ) do
-		table.insert( fieldsPart,
-			string.format( "`%s` %s",
-				fieldname,
-				DatabaseModel.generateSQLForType( fieldtype, { myql = database.CONNECTED_TO_MYSQL } )
-			)
-		)
-	end
-	table.insert( fieldsPart, "PRIMARY KEY (`" .. ( model.overrideKey or "id" ) .. "` ASC)" )
-
-	local fieldsPart = table.concat( fieldsPart, ", " )
-
-	local modelsRequired = {}
-	local fkParts = {""}
-	for name, info in pairs( model.belongsTo or {} ) do
-		local onDelete = "RESTRICT"
-		if info.onDelete then
-			onDelete = info.onDelete
-		elseif model.fields[info.foreignKey] == "optKey" then
-			onDelete = "SET NULL"
+	local sqlStr, modelsRequired = class.static.getCreateTableStatement( DATABASES[class.DB].CONNECTED_TO_MYSQL )
+	return Promise.Resolve():Then( function( )
+		if #modelsRequired > 0 then
+			return WhenModelsLoaded( modelsRequired )
 		end
-
-		local onUpdate = "RESTRICT"
-		if info.onUpdate then
-			onUpdate = info.onUpdate
-		elseif model.fields[info.foreignKey] == "optKey" then
-			onUpdate = "SET NULL"
-		end
-
-		local foreignClass = getClass( info.class )
-		if not foreignClass then
-			error( "Invalid class " .. info.class .. " for model " .. class.name .. ", constraint " .. name )
-		end
-
-		table.insert( fkParts, Format( "CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`) ON DELETE %s ON UPDATE %s",
-			"FK_" .. util.CRC( class.name .. "_" .. name .. "_" .. info.class ),
-			info.foreignKey,
-			foreignClass.model.tableName,
-			foreignClass.model.overrideKey or "id",
-			onDelete,
-			onUpdate
-		) )
-
-		--Wait for parent models to load before creating the table unless it's a self-reference
-		if info.class != class.name then
-			table.insert( modelsRequired, info.class )
-		end
-	end
-	fkParts = table.concat( fkParts, ", " )
-
-	local sqlStr = query .. fieldsPart  .. fkParts .. ")"
-	if DATABASES[class.DB].CONNECTED_TO_MYSQL then
-		sqlStr = sqlStr .. "  ENGINE=InnoDB"
-	end
-
-	local promise
-	if #modelsRequired > 0 then
-		promise = WhenModelsLoaded( modelsRequired )
-	else
-		promise = Deferred( )
-		promise:Resolve( )
-	end
-
-	return promise:Then( function( )
+	end ):Then( function( )
 		return DATABASES[class.DB].DoQuery( sqlStr )
 		:Done( function( )
 			onTableInitialized( class.name )
@@ -184,6 +120,69 @@ function DatabaseModel:included( class )
 
 	if not class.static.model.fields.id and not class.static.model.overrideKey then
 		class.static.model.fields.id = "id"
+	end
+
+	function class.static.getCreateTableStatement( mysql )
+		local model = class.static.model
+	
+		local query = string.format( "CREATE TABLE IF NOT EXISTS `%s` (", model.tableName )
+		local fieldsPart = {}
+		for fieldname, fieldtype in pairs( model.fields ) do
+			table.insert( fieldsPart,
+				string.format( "`%s` %s",
+					fieldname,
+					DatabaseModel.generateSQLForType( fieldtype, { myql = mysql } )
+				)
+			)
+		end
+		table.insert( fieldsPart, "PRIMARY KEY (`" .. ( model.overrideKey or "id" ) .. "` ASC)" )
+	
+		local fieldsPart = table.concat( fieldsPart, ", " )
+	
+		local modelsRequired = {}
+		local fkParts = {""}
+		for name, info in pairs( model.belongsTo or {} ) do
+			local onDelete = "RESTRICT"
+			if info.onDelete then
+				onDelete = info.onDelete
+			elseif model.fields[info.foreignKey] == "optKey" then
+				onDelete = "SET NULL"
+			end
+	
+			local onUpdate = "RESTRICT"
+			if info.onUpdate then
+				onUpdate = info.onUpdate
+			elseif model.fields[info.foreignKey] == "optKey" then
+				onUpdate = "SET NULL"
+			end
+	
+			local foreignClass = getClass( info.class )
+			if not foreignClass then
+				error( "Invalid class " .. info.class .. " for model " .. class.name .. ", constraint " .. name )
+			end
+	
+			table.insert( fkParts, Format( "CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`) ON DELETE %s ON UPDATE %s",
+				"FK_" .. util.CRC( class.name .. "_" .. name .. "_" .. info.class ),
+				info.foreignKey,
+				foreignClass.model.tableName,
+				foreignClass.model.overrideKey or "id",
+				onDelete,
+				onUpdate
+			) )
+	
+			--Wait for parent models to load before creating the table unless it's a self-reference
+			if info.class != class.name then
+				table.insert( modelsRequired, info.class )
+			end
+		end
+		fkParts = table.concat( fkParts, ", " )
+	
+		local sqlStr = query .. fieldsPart  .. fkParts .. ")"
+		if mysql then
+			sqlStr = sqlStr .. "  ENGINE=InnoDB"
+		end
+
+		return sqlStr, modelsRequired
 	end
 
 	function class.static.getSelectForField( fieldname, alias, tableNameOverride )
