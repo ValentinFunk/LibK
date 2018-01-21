@@ -18,7 +18,7 @@ local UpdateDB = LibK.getDatabaseConnection( LibK.SQL, "Update" )
 local function createVersionTable()
 	return UpdateDB.DoQuery([[
 		CREATE TABLE IF NOT EXISTS libk_meta_version (
-			addon VARCHAR(255) NOT NULL PRIMARY KEY,
+			addon VARCHAR(164) NOT NULL PRIMARY KEY,
 			version VARCHAR(255) NOT NULL
 		)
 	]])
