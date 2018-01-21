@@ -80,6 +80,8 @@ vnet.Watch( "LibK_StartView", function( packet )
 
 		local view = viewClass:getInstance( )
 		if view and view.HandleDecodeError then
+			KLogf(2, 'Error decoding net table %s for view %s:%s', errClass, viewClass, func)
+			PrintTable(vars)
 			view:HandleDecodeError( func, errClass )
 			return
 		end
