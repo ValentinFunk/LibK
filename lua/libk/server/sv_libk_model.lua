@@ -135,7 +135,10 @@ function DatabaseModel:included( class )
 				)
 			)
 		end
-		table.insert( fieldsPart, "PRIMARY KEY (`" .. ( model.overrideKey or "id" ) .. "` ASC)" )
+		if myql then
+			-- In SQLite this is done as part of the column SQL for the id type
+			table.insert( fieldsPart, "PRIMARY KEY (`" .. ( model.overrideKey or "id" ) .. "` ASC)" )
+		end
 	
 		local fieldsPart = table.concat( fieldsPart, ", " )
 	
@@ -573,7 +576,7 @@ end
 
 function DatabaseModel.generateSQLForType( fieldtype, options )
 	local map = {
-		id = "INTEGER",
+		id = "INTEGER PRIMARY KEY AUTOINCREMENT",
 		string = "VARCHAR(255) NOT NULL",
 		int = "INT(11) NOT NULL",
 		optKey = "INT(11)",
