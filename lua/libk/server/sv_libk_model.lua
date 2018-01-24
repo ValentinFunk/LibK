@@ -135,7 +135,7 @@ function DatabaseModel:included( class )
 				)
 			)
 		end
-		if myql then
+		if mysql then
 			-- In SQLite this is done as part of the column SQL for the id type
 			table.insert( fieldsPart, "PRIMARY KEY (`" .. ( model.overrideKey or "id" ) .. "` ASC)" )
 		end
