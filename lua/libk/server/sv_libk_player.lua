@@ -1,6 +1,6 @@
 --Give player their db id or create entry if they don't have one
 function LibK.playerInitialSpawn( ply )
-	LibK.Player.findBySteam64( ply:SteamID64( ) )
+	LibK.Player.findByPlayer( ply )
 	:Then( function( dbPlayer )
 		if not IsValid( ply ) then
 			-- Player disconnected during join, do nothing
@@ -9,6 +9,7 @@ function LibK.playerInitialSpawn( ply )
 
 		if dbPlayer then
 			dbPlayer.name = ply:Nick( ) 
+			dbPlayer.steam64 = ply:SteamID64( )
 			return dbPlayer:save( )
 		else
 			local dbPlayer = LibK.Player:new( )
