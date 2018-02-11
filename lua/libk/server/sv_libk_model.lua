@@ -769,7 +769,6 @@ function DatabaseModel:remove( keepId )
 end
 
 function DatabaseModel:getSaveSql()
-	KLog( 4, self.class.name .. ":save( )" )
 	local db = self.class.static.DB
 	local model = self.class.static.model
 
