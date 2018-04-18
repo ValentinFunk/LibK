@@ -1,8 +1,8 @@
 --LibK Fonts
 --Segoe UI 8
-resource.AddFile( "resource/fonts/segui.ttf" )
-resource.AddFile( "resource/fonts/seguil.ttf" )
-resource.AddFile( "resource/fonts/seguisl.ttf" )
+resource.AddFile( "resource/fonts/segoeui.ttf" )
+resource.AddFile( "resource/fonts/segoeuil.ttf" )
+resource.AddFile( "resource/fonts/segoeuisl.ttf" )
 resource.AddFile( "resource/fonts/seguisb.ttf" )
 
 --Used to ensure something runs after Initialize
