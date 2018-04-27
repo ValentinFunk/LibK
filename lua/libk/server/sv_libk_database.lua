@@ -230,7 +230,7 @@ function LibK.getDatabaseConnection( config, name )
 			return
 		end
 
-		local databaseObject = mysqloo.connect(host, username, password, database_name, database_port)
+		local databaseObject = mysqloo.connect(host, username, password, database_name, database_port, '/var/run/mysqld/mysqld.sock')
 		LibK.mysqloolib.ConvertDatabase(databaseObject) -- Sets metatable to include convenience methods
 
 		if timer.Exists("libk_check_mysql_status") then timer.Destroy("libk_check_mysql_status") end
