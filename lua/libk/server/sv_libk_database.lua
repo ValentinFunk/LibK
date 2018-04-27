@@ -123,15 +123,16 @@ function LibK.getDatabaseConnection( config, name )
 			end
 
 			query.onError = function(Q, E)
-				if (DB.MySQLDB:status() == mysqloo.DATABASE_NOT_CONNECTED) then
-					KLogf( 4, "[INFO] Connection to the database lost, reconnecting! Query %s has been queued", sqlText )
-					table.insert(DB.cachedQueries, {sqlText, callback, false})
-					DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
-					return
-				end
+				local isDisconnected = string.find(E, 'Lost connection to MySQL server during query'))
 				if DB.MySQLDB:status() == mysqloo.DATABASE_CONNECTING then
 					KLogf( 4, "[INFO] Database is reconnecting! Query %s has been queued", sqlText )
 					table.insert(DB.cachedQueries, {sqlText, callback, false})
+					return
+				end
+				if (DB.MySQLDB:status() == mysqloo.DATABASE_NOT_CONNECTED) or isDisconnected then
+					KLogf( 4, "[INFO] Connection to the database lost, reconnecting! Query %s has been queued", sqlText )
+					table.insert(DB.cachedQueries, {sqlText, callback, false})
+					DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 					return
 				end
 
