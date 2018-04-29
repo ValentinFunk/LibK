@@ -198,8 +198,8 @@ local deferred = {
 				p._state = 'fail';
 				p._res = {...};
 				if #p._fails == 0 then
-					print( "WARNIG: uncaught error" )
-					print( ... )
+					MsgC( Color(255, 0, 0), "WARNIG: uncaught error in Promise: ", ..., "\n" )
+					LibK.GLib.PrintStackTrace()
 				end
 				for _, f in pairs(p._fails) do
 						f(...);
