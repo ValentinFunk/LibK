@@ -304,7 +304,12 @@ Promise = {}
 
 function Promise.Reject( ... )
 	local def = Deferred( )
-	def:Reject( ... )
+
+	local args = { ... }
+	LibK.GLib.Threading.Thread():Start( function()
+		def:Reject( unpack( args ) )
+	end )
+
 	return def:Promise()
 end
 
