@@ -39,6 +39,16 @@ end
 
 local promise = {
 		_IsPromise = true;
+		Map = function(self, mapFn) 
+			return self:Then(function( result )
+				return Promise.Map( result, mapFn )
+			end )
+		end,
+		Filter = function (self, filterFn)
+			return self:Then( function(result)
+				return Promise.Filter( result, filterFn )
+			end )
+		end,
 		Then = function(self, succ, fail, prog)
 				local def = Deferred();
 				if (type(succ) == 'function') then
@@ -336,6 +346,35 @@ function Promise.Map( tbl, mapFn )
     return WhenAllFinished( promises, { noUnpack = true } )
 end
 
+function Promise.Wrap( valueOrPromise )
+	if ispromise( valueOrPromise ) then
+		return valueOrPromise
+	end
+	return Promise.Resolve( valueOrPromise )
+end
+
+function Promise.Filter( tbl, filterFn )
+	local promises = {}
+    for k, v in ipairs( tbl ) do
+		local promise = Promise.Wrap( v ):Then( function( resolved )
+			local result = filterFn( resolved )
+			return Promise.Wrap( result ):Then( function( included ) 
+				return {
+					included = included,
+					value = resolved
+				}
+			end )
+		end )
+
+        table.insert( promises, promise )
+    end
+
+	return WhenAllFinished( promises, { noUnpack = true } ):Then( function( results ) 
+		return LibK._(results):chain():filter( function( result )
+			return result.included
+		end ):pluck( "value" ):value()
+	end )
+end
 
 function Promise.Resolve( ... )
 	local def = Deferred( )
@@ -364,5 +403,6 @@ function Promise.Delay( delay, funcOrValue )
     end )
     return def:Promise( )
 end
+
 
 return Deferred;
