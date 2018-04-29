@@ -296,6 +296,16 @@ function Underscore.funcs.join(array, separator)
 	return table.concat(array, separator)
 end
 
+function Underscore.funcs.groupBy(array, fn)
+	local result = { }
+	for k, ele in ipairs(array) do
+		local key = fn(ele, k)
+		result[key] = result[key] or {}
+		table.insert(result[key], ele)
+	end
+	return all
+end
+
 -- objects
 
 function Underscore.funcs.keys(obj)
@@ -312,6 +322,22 @@ function Underscore.funcs.values(obj)
 		values[#values+1] = v
 	end
 	return values
+end
+
+function Underscore.funcs.mapValues(obj, fn)
+	local mapped = {}
+	for k, v in pairs(obj) do
+		mapped[k] = fn(v)
+	end
+	return mapped
+end
+
+function Underscore.funcs.entries(obj)
+	local entries = {}
+	for k, v in pairs(obj) do
+		entries[#entries+1] = { k, v }
+	end
+	return entries
 end
 
 function Underscore.funcs.extend(destination, source)
