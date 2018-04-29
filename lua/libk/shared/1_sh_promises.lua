@@ -199,7 +199,7 @@ local deferred = {
 				p._res = {...};
 				if #p._fails == 0 then
 					MsgC( Color(255, 0, 0), "WARNIG: uncaught error in Promise: ", ..., "\n" )
-					LibK.GLib.PrintStackTrace()
+					MsgC( Color(255, 0, 0), GLib.StackTrace (nil, 1) )
 				end
 				for _, f in pairs(p._fails) do
 						f(...);
