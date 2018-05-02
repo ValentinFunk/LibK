@@ -28,6 +28,9 @@ function BaseController:startView( viewName, func, target,  ... )
 	if not target or ( type( target ) != "Player" and not istable( target ) ) then
 		error( "Invalid arg #3 to startView, player/playerTable expected, got " .. type( target ), 2 )
 	end
+	if istable( target ) and #target == 0 then
+		return
+	end
 	
 	local packet = vnet.CreatePacket("LibK_StartView")
 	packet:String(viewName)
@@ -133,23 +136,19 @@ net.Receive( "ControllerAction", function( len, ply )
 	
 	instance:canDoAction( ply, action )
 	:Then( function( )
-		local def = Deferred( )
 		if LibK.Debug then
-			instance[action]( instance, ply, unpack( args ) )
+			return instance[action]( instance, ply, unpack( args ) )
 		else
-			local succ, err = xpcall( instance[action], function()
-				return debug.traceback()
-			end, instance, ply, unpack( args ) )
+			local succ, err = xpcall( instance[action], LibK.GLib.Error, instance, ply, unpack( args ) )
 			if not succ then
-				def:Reject( 1, "Internal Server Errror" )
 				KLogf( 1, "LUA Error in Controller " .. controller .. " action " .. action .. ":\n" )
-				KLogf( 1, err )
+				KLogf( 1, tostring( err ) )
+				return Promise.Reject( 1, "There was a Lua error. Please check the server console for details." )
 			end
+			return err
 		end
-		
-		return def:Promise( )
 	end )
 	:Fail( function( errid, err )
-		instance:startView( view, "displayError", ply, err, "Error" )
+		instance:startView( view, "displayError", ply, tostring(errid) .. ": " .. tostring(err), "Server Error" )
 	end )
 end )
