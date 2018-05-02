@@ -10,6 +10,10 @@ function LibK.SetBlocking( bShouldBlock )
 	LibK.databaseShouldBlock = bShouldBlock
 end
 
+hook.Add( "LibK_DatabaseConnectionFailed", function ( DB, name, msg )
+	DB.ConnectionPromise:Reject( tostring( msg ) )
+end )
+
 DATABASES = DATABASES or {}
 function LibK.getDatabaseConnection( config, name )
 	local DB = {}
@@ -123,15 +127,16 @@ function LibK.getDatabaseConnection( config, name )
 			end
 
 			query.onError = function(Q, E)
-				if (DB.MySQLDB:status() == mysqloo.DATABASE_NOT_CONNECTED) then
-					KLogf( 4, "[INFO] Connection to the database lost, reconnecting! Query %s has been queued", sqlText )
-					table.insert(DB.cachedQueries, {sqlText, callback, false})
-					DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
-					return
-				end
+				local isDisconnected = string.find(E, 'Lost connection to MySQL server during query')
 				if DB.MySQLDB:status() == mysqloo.DATABASE_CONNECTING then
 					KLogf( 4, "[INFO] Database is reconnecting! Query %s has been queued", sqlText )
 					table.insert(DB.cachedQueries, {sqlText, callback, false})
+					return
+				end
+				if (DB.MySQLDB:status() == mysqloo.DATABASE_NOT_CONNECTED) or isDisconnected then
+					KLogf( 4, "[INFO] Connection to the database lost, reconnecting! Query %s has been queued (%s)", sqlText, isDisconnected and E or 'db:status() == DATABASE_NOT_CONNECTED' )
+					table.insert(DB.cachedQueries, {sqlText, callback, false})
+					DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 					return
 				end
 
@@ -172,7 +177,10 @@ function LibK.getDatabaseConnection( config, name )
 		DB.Query( sqlText, function( data, lastInsertId )
 			def:Resolve( data, lastInsertId )
 		end, function( err )
-			def:Reject( 0, err )
+			-- This has to be async for handlers to attach
+			LibK.GLib.Threading.Thread():Start( function()
+				def:Reject( 0, err )
+			end )
 		end, blocking )
 		return def:Promise( )
 	end
@@ -238,7 +246,6 @@ function LibK.getDatabaseConnection( config, name )
 		databaseObject.onConnectionFailed = function(_, msg)
 			KLogf( 1, "[LibK] Connection failed to %s(%s@%s:%s): %s", name, username, host, database_port, msg )
 			hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, tostring( msg ) )
-			DB.ConnectionPromise:Reject(tostring(msg))
 		end
 
 		databaseObject.onConnected = function()
@@ -347,16 +354,22 @@ function LibK.getDatabaseConnection( config, name )
 		KLogf( 4, "Connecting to %s@%s db: %s", config.User, config.Host, config.Database )
 		DB.ConnectToMySQL(config.Host, config.User, config.Password, config.Database, config.Port )
 	else
-		DB.IsConnected = true
-
 		-- Enable FK
-		DB.Query( "PRAGMA foreign_keys = ON;" )
-		DB.DisableForeignKeyChecks( false )
-
-		DB.ConnectionPromise:Resolve()
-
-		-- Run hooks
-		hook.Call("LibK_DatabaseInitialized", nil, DB, name )
+		DB.DisableForeignKeyChecks( false ):Then( function()
+			DB.IsConnected = true
+			DB.ConnectionPromise:Resolve()
+			-- Run hooks
+			hook.Call("LibK_DatabaseInitialized", nil, DB, name )
+		end, function (errid, err)
+			err = tostring(errid) .. ',' .. tostring(err)
+			KLogf( 1, "[LibK] Failed to enable foreign key checks on your db. PLEASE FORCE UPDATE YOUR GMOD SERVER TO THE NEWEST VERION! (%s)", err )
+			hook.Add( "PlayerInitialSpawn", "MakeSureTheySeeIt", function (ply)
+				timer.Simple( 5, function() 
+					ply:ChatPrint( "[LibK] Addon loading failed: Your server is running a buggy gmod version (SQLite issue). Please update your server to the newest version!" )
+				end )
+			end )
+			hook.Call( "LibK_DatabaseConnectionFailed", nil, DB, name, "Your gmod server is outdated! Please force update the server (Foreign key checks failed: " .. err .. ")" )
+		end )
 	end
 
 	return DB
