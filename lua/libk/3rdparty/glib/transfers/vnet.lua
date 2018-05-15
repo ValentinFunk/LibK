@@ -1487,7 +1487,6 @@ end
 function ReadPacketIndex:Discard()
 	_checkpck(self)
 
-	self.Buffer:Clear()
 	self.Buffer = nil
 
 	self.Discarded = true
