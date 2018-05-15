@@ -262,9 +262,11 @@ function WhenAllFinished( tblPromises, options )
 	local options = options or {}
 
 	if #tblPromises == 0 then
-		--No promises so we finished already?
-		--TODO: evaluate if reject is better in this case
-		def:Resolve( )
+		if options.noUnpack then
+			def:Resolve({})
+		else
+			def:Resolve()
+		end
 		return def:Promise( )
 	end
 
