@@ -224,7 +224,7 @@ do
 			return prog, false
 		end
 
-		--print("writing", os.date(), os.time(), SysTime(), pckPrint(pck))
+		-- print("writing", os.date(), os.time(), SysTime(), pckPrint(pck))
 
 		if #pck.Data <= frac and pck.Completed then
 			WriteInt(TYPE_FRAG_WHOLE, 8)								--	Fragment type
@@ -1443,7 +1443,7 @@ end
 function ReadPacketIndex:Int()
 	_checkpck(self)
 
-	return self.Buffer:Int64()
+	return self.Buffer:Int32()
 end
 
 function ReadPacketIndex:Short()
@@ -1731,7 +1731,7 @@ local writevar, writetable, readvar, readtable
 writevar = function(v, f, d)
 	if v ~= nil and d[v] then
 		f:UInt8(TABLE_TYPE_REFERENCE)
-		f:Int16(d[v])
+		f:UInt16(d[v])
 
 		--print("  - ref ", d[v], "(" .. tostring(v) .. ")")
 	else
@@ -1843,8 +1843,6 @@ readvar = function(tid, f, d)
 		d[d[specialKeyForTheReferenceCounter]] = s
 
 		return s
-	elseif TABLE_TYPE_STRING_NETWORKED == tid then
-		return util.NetworkIDToString(f:Int16())
 	elseif TABLE_TYPE_STRING_EMPTY == tid then
 		return ""
 	elseif TABLE_TYPE_BOOLEAN_TRUE == tid then
@@ -1869,7 +1867,7 @@ readvar = function(tid, f, d)
 	elseif TABLE_TYPE_VECTOR == tid then
 		return f:Vector()
 	elseif TABLE_TYPE_REFERENCE == tid then
-		return d[f:UInt8()]
+		return d[f:UInt16()]
 	else
 		error("unknown type ID: " .. tid)
 	end
