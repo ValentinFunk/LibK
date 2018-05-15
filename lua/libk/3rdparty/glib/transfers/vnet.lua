@@ -50,8 +50,11 @@ if not net or not net.Receivers then require "net" end
 
 local Receive, Start, Send, Broadcast, SendToServer, WriteString, WriteInt, WriteUInt, WriteData, ReadString, ReadInt, ReadUInt, ReadData
  = net.Receive, net.Start, net.Send, net.Broadcast, net.SendToServer, net.WriteString, net.WriteInt, net.WriteUInt, net.WriteData, net.ReadString, net.ReadInt, net.ReadUInt, net.ReadData
- local file, math_floor, math_ceil, math_random, math_min, math_max, table_remove, string_sub, type, player_GetAll, util, hook = file, math.floor, math.ceil, math.random, math.min, math.max, table.remove, string.sub, type, player.GetAll, util, hook
+local math_floor, math_ceil, math_random, math_min, math_max, table_remove, string_sub, type, player_GetAll, util, hook = math.floor, math.ceil, math.random, math.min, math.max, table.remove, string.sub, type, player.GetAll, util, hook
 local Color, now, SERVER, CLIENT, IsValid, IsEntity = Color, RealTime, SERVER, CLIENT, IsValid, IsEntity
+
+local StringOutBuffer = GLib.StringOutBuffer
+local StringInBuffer = GLib.StringInBuffer
 
 --[[local _p = print
 local function print(...)
@@ -66,30 +69,6 @@ file.Append("vnetlog.txt", "\n\n------------------------------------------------
 --	--	--	--	--	--
 --	Misecllaneous	--
 --	--	--	--	--	--
-
-
-
-if file.IsDir("vnet", "DATA") then
-	local files, dirs = file.Find("vnet/*", "DATA")
-
-	for i = 1, #files do
-		file.Delete("vnet/" .. files[i])
-	end
-else
-	file.CreateDir("vnet")
-end
-
-local function getFile()
-	while true do
-		local id = math_random(-2147483648, 2147483647)
-		local path = "vnet/queue_" .. id .. ".txt"
-
-		if not file.Exists(path, "DATA") then
-			return path
-		end
-	end
-end
-
 
 
 local chunk_size_min, chunk_size_current, chunk_size_max = 64, 256, 65535 - 4096 --	Just accounting for errors and leaving 4 KiB for the engine.
@@ -1146,7 +1125,7 @@ local WritePacketIndex = {
 function WritePacketIndex:Size()
 	_checkpck(self)
 
-	return self.File:Size()
+	return self.Buffer:GetSize()
 end
 
 --	Writing
@@ -1165,12 +1144,12 @@ function WritePacketIndex:String(val)
 	end
 
 	if nid then
-		self.File:WriteLong(-nid)
+		self.Buffer:Int32(-nid)
 	else
-		self.File:WriteLong(#val)
+		self.Buffer:Int32(#val)
 
 		if val ~= "" then
-			self.File:Write(val)
+			self.Buffer:Bytes(val)
 		end
 	end
 
@@ -1188,7 +1167,7 @@ function WritePacketIndex:Int(val)
 		error("bad argument #1: given number is outside the range of a 32-bit signed integer.")
 	end
 
-	self.File:WriteLong(val)
+	self.Buffer:Int32(val)
 
 	return self
 end
@@ -1204,7 +1183,7 @@ function WritePacketIndex:Short(val)
 		error("bad argument #1: given number is outside the range of a 16-bit signed integer.")
 	end
 
-	self.File:WriteShort(val)
+	self.Buffer:Int16(val)
 
 	return self
 end
@@ -1220,7 +1199,7 @@ function WritePacketIndex:Byte(val)
 		error("bad argument #1: given number is outside the range of an 8-bit unsigned integer.")
 	end
 
-	self.File:WriteByte(val)
+	self.Buffer:UInt8(val)
 
 	return self
 end
@@ -1232,7 +1211,7 @@ function WritePacketIndex:Double(val)
 		error("bad argument #1: 'number' expected, got '" .. type(val) .. "'.")
 	end
 
-	self.File:WriteDouble(val)
+	self.Buffer:Double(val)
 
 	return self
 end
@@ -1244,7 +1223,7 @@ function WritePacketIndex:Float(val)
 		error("bad argument #1: 'number' expected, got '" .. type(val) .. "'.")
 	end
 
-	self.File:WriteFloat(val)
+	self.Buffer:Float(val)
 
 	return self
 end
@@ -1256,7 +1235,7 @@ function WritePacketIndex:Bool(val)
 		error("bad argument #1: 'boolean' expected, got '" .. type(val) .. "'.")
 	end
 
-	self.File:WriteBool(val)
+	self.Buffer:Boolean(val)
 
 	return self
 end
@@ -1322,7 +1301,7 @@ end
 
 if CLIENT then
 	function WritePacketIndex:AddServer()
-		if not self.File then
+		if not self.Buffer then
 			error("package is already sent or discarded")
 		end
 
@@ -1332,7 +1311,7 @@ if CLIENT then
 	end
 
 	function WritePacketIndex:RemoveServer()
-		if not self.File then
+		if not self.Buffer then
 			error("package is already sent")
 		end
 
@@ -1351,11 +1330,7 @@ function WritePacketIndex:Send()
 		error("package has no targets registered whatsoever")
 	end
 
-	self.File:Flush()
-	self.File:Close()
-	self.File = false
-
-	self.Data = file.Read(self.FilePath, "DATA")
+	self.Data = self.Buffer:GetString( )
 
 	if #self.Data >= compression_threshold_low_current and #self.Data <= compression_threshold_high_current then
 		self.Compressed = true
@@ -1363,8 +1338,6 @@ function WritePacketIndex:Send()
 	end
 
 	self.Size = #self.Data
-
-	file.Delete(self.FilePath)
 
 	if SERVER then
 		for i = #self.Targets, 1, -1 do
@@ -1375,6 +1348,7 @@ function WritePacketIndex:Send()
 	end
 
 	self.Sent = true
+	self.Buffer = nil
 
 	return self
 end
@@ -1407,10 +1381,8 @@ end
 function WritePacketIndex:Discard()
 	_checkpck(self)
 
-	self.File:Close()
-	self.File = false
-
-	file.Delete(self.FilePath)
+	self.Buffer:Clear( )
+	self.Buffer = nil
 
 	self.Discarded = true
 
@@ -1425,16 +1397,8 @@ local WritePacketMeta = {
 }
 
 local function createWritePacket(typ)
-	local fPath = getFile()
-	local fObject, fErr = file.Open(fPath, "wb", "DATA")
-
-	if not fObject then
-		error("file creation error: " .. tostring(fErr))
-	end
-
 	local new = {
-		FilePath = fPath,
-		File = fObject,
+		Buffer = StringOutBuffer(),
 		Type = typ,
 		Data = false,
 		Compressed = false,
@@ -1457,7 +1421,7 @@ local ReadPacketIndex = {
 function ReadPacketIndex:Size()
 	_checkpck(self)
 
-	return self.File:Size()
+	return self.Buffer:GetSize()
 end
 
 --	Writing
@@ -1465,51 +1429,51 @@ end
 function ReadPacketIndex:String()
 	_checkpck(self)
 
-	local len = self.File:ReadLong()
+	local len = self.Buffer:Int32()
 
 	if len == 0 then
 		return ""
 	elseif len < 0 then
 		return util.NetworkIDToString(-len)
 	else
-		return self.File:Read(len)
+		return self.Buffer:Bytes(len)
 	end
 end
 
 function ReadPacketIndex:Int()
 	_checkpck(self)
 
-	return self.File:ReadLong()
+	return self.Buffer:Int64()
 end
 
 function ReadPacketIndex:Short()
 	_checkpck(self)
 
-	return self.File:ReadShort()
+	return self.Buffer:Int16()
 end
 
 function ReadPacketIndex:Byte()
 	_checkpck(self)
 
-	return self.File:ReadByte()
+	return self.Buffer:UInt8()
 end
 
 function ReadPacketIndex:Double()
 	_checkpck(self)
 
-	return self.File:ReadDouble()
+	return self.Buffer:Double()
 end
 
 function ReadPacketIndex:Float()
 	_checkpck(self)
 
-	return self.File:ReadFloat()
+	return self.Buffer:Float()
 end
 
 function ReadPacketIndex:Bool()
 	_checkpck(self)
 
-	return self.File:ReadBool()
+	return self.Buffer:Boolean()
 end
 
 --	Status
@@ -1523,10 +1487,8 @@ end
 function ReadPacketIndex:Discard()
 	_checkpck(self)
 
-	self.File:Close()
-	self.File = false
-
-	file.Delete(self.FilePath)
+	self.Buffer:Clear()
+	self.Buffer = nil
 
 	self.Discarded = true
 end
@@ -1539,23 +1501,12 @@ local ReadPacketMeta = {
 }
 
 local function createReadPacket(pck)
-	local fPath = getFile()
-
 	if pck.Compressed then
 		pck.Data = util.Decompress(pck.Data)
 	end
 
-	file.Write(fPath, pck.Data)
-
-	local fObject, fErr = file.Open(fPath, "rb", "DATA")
-
-	if not fObject then
-		error("file opening error: " .. tostring(fErr))
-	end
-
 	local new = {
-		FilePath = fPath,
-		File = fObject,
+		Buffer = StringInBuffer(pck.Data),
 		Type = pck.Type,
 		Data = pck.Data,
 		Compressed = pck.Compressed,
@@ -1644,10 +1595,10 @@ function WritePacketIndex:Color(val)
 		error("bad argument #1: expected a color table")
 	end
 
-	self.File:WriteByte(val.r)
-	self.File:WriteByte(val.g)
-	self.File:WriteByte(val.b)
-	self.File:WriteByte(val.a)
+	self.Buffer:UInt8(val.r)
+	self.Buffer:UInt8(val.g)
+	self.Buffer:UInt8(val.b)
+	self.Buffer:UInt8(val.a)
 
 	return self
 end
@@ -1655,7 +1606,7 @@ end
 function ReadPacketIndex:Color()
 	_checkpck(self)
 
-	return Color(self.File:ReadByte(), self.File:ReadByte(), self.File:ReadByte(), self.File:ReadByte())
+	return Color(self.Buffer:UInt8(), self.Buffer:UInt8(), self.Buffer:UInt8(), self.Buffer:UInt8())
 end
 
 
@@ -1666,7 +1617,7 @@ function WritePacketIndex:Entity(val)
 		error("bad argument #1: expected 'entity', got '" .. type(val) .. "'.")
 	end
 
-	self.File:WriteShort(val:EntIndex())
+	self.Buffer:UInt32(val:EntIndex())
 
 	return self
 end
@@ -1674,7 +1625,7 @@ end
 function ReadPacketIndex:Entity()
 	_checkpck(self)
 
-	return Entity(self.File:ReadShort())
+	return Entity(self.Buffer:UInt32())
 end
 
 
@@ -1685,9 +1636,9 @@ function WritePacketIndex:Angle(val)
 		error("bad argument #1: 'Angle' expected, got '" .. type(val) .. "'.")
 	end
 
-	self.File:WriteFloat(val.p)
-	self.File:WriteFloat(val.y)
-	self.File:WriteFloat(val.r)
+	self.Buffer:Float(val.p)
+	self.Buffer:Float(val.y)
+	self.Buffer:Float(val.r)
 
 	return self
 end
@@ -1695,7 +1646,7 @@ end
 function ReadPacketIndex:Angle()
 	_checkpck(self)
 
-	return Angle(self.File:ReadFloat(), self.File:ReadFloat(), self.File:ReadFloat())
+	return Angle(self.Buffer:Float(), self.Buffer:Float(), self.Buffer:Float())
 end
 
 
@@ -1706,9 +1657,7 @@ function WritePacketIndex:Vector(val)
 		error("bad argument #1: 'Vector' expected, got '" .. type(val) .. "'.")
 	end
 
-	self.File:WriteFloat(val.x)
-	self.File:WriteFloat(val.y)
-	self.File:WriteFloat(val.z)
+	self.Buffer:Vector(val)
 
 	return self
 end
@@ -1716,7 +1665,7 @@ end
 function ReadPacketIndex:Vector()
 	_checkpck(self)
 
-	return Vector(self.File:ReadFloat(), self.File:ReadFloat(), self.File:ReadFloat())
+	return self.Buffer:Vector()
 end
 
 
@@ -1782,78 +1731,64 @@ local writevar, writetable, readvar, readtable
 
 writevar = function(v, f, d)
 	if v ~= nil and d[v] then
-		f:WriteByte(TABLE_TYPE_REFERENCE)
-		f:WriteShort(d[v])
+		f:UInt8(TABLE_TYPE_REFERENCE)
+		f:Int16(d[v])
 
 		--print("  - ref ", d[v], "(" .. tostring(v) .. ")")
 	else
 		local tid = typemap[type(v)]
 
 		if TABLE_TYPE_NIL == tid then
-			f:WriteByte(tid)
+			f:UInt8(tid)
 		elseif TABLE_TYPE_BOOLEAN == tid then
-			f:WriteByte(v and TABLE_TYPE_BOOLEAN_TRUE or TABLE_TYPE_BOOLEAN_FALSE)
+			f:UInt8(v and TABLE_TYPE_BOOLEAN_TRUE or TABLE_TYPE_BOOLEAN_FALSE)
 
 			--print("  - bool type:", v, v and TABLE_TYPE_BOOLEAN_TRUE or TABLE_TYPE_BOOLEAN_FALSE)
 		elseif TABLE_TYPE_STRING == tid then
 			if v == "" then
-				f:WriteByte(TABLE_TYPE_STRING_EMPTY)
+				f:UInt8(TABLE_TYPE_STRING_EMPTY)
 			else
-				local nid = util.NetworkStringToID(v)
+				f:UInt8(tid)
 
-				if nid and (nid <= 0 or util.NetworkIDToString(nid) ~= v) then
-					nid = nil
-				end
+				f:StringN32(v)
 
-				if nid and nid > 0 then
-					f:WriteByte(TABLE_TYPE_STRING_NETWORKED)
-					f:WriteShort(nid)
-				else
-					f:WriteByte(tid)
-
-					f:WriteLong(#v)
-					f:Write(v)
-
-					d[specialKeyForTheReferenceCounter] = d[specialKeyForTheReferenceCounter] + 1
-					d[v] = d[specialKeyForTheReferenceCounter]
-				end
+				d[specialKeyForTheReferenceCounter] = d[specialKeyForTheReferenceCounter] + 1
+				d[v] = d[specialKeyForTheReferenceCounter]
 			end
 		elseif TABLE_TYPE_TABLE == tid then
 			if IsColor(v) then
-				f:WriteByte(TABLE_TYPE_TABLE_COLOR)
+				f:UInt8(TABLE_TYPE_TABLE_COLOR)
 
-				f:WriteByte(v.r)
-				f:WriteByte(v.g)
-				f:WriteByte(v.b)
-				f:WriteByte(v.a)
+				f:UInt8(v.r)
+				f:UInt8(v.g)
+				f:UInt8(v.b)
+				f:UInt8(v.a)
 			else
-				f:WriteByte(tid)
+				f:UInt8(tid)
 
 				writetable(v, f, d)
 			end
 		elseif TABLE_TYPE_NUMBER == tid then
-			f:WriteByte(tid)
-			f:WriteDouble(v)
+			f:UInt8(tid)
+			f:Double(v)
 		elseif IsEntity(v) then
 			local ei = v:EntIndex()
 
 			if ei <= 255 then
-				f:WriteByte(TABLE_TYPE_ENTITY_SINGLE)
-				f:WriteByte(ei)
+				f:UInt8(TABLE_TYPE_ENTITY_SINGLE)
+				f:UInt8(ei)
 			else
-				f:WriteByte(TABLE_TYPE_ENTITY_DOUBLE)
-				f:WriteShort(ei)
+				f:UInt8(TABLE_TYPE_ENTITY_DOUBLE)
+				f:Int16(ei)
 			end
 		elseif TABLE_TYPE_ANGLE == tid then
-			f:WriteByte(tid)
-			f:WriteFloat(v.p)
-			f:WriteFloat(v.y)
-			f:WriteFloat(v.r)
+			f:UInt8(tid)
+			f:Float(v.p)
+			f:Float(v.y)
+			f:Float(v.r)
 		elseif TABLE_TYPE_VECTOR == tid then
-			f:WriteByte(tid)
-			f:WriteFloat(v.x)
-			f:WriteFloat(v.y)
-			f:WriteFloat(v.z)
+			f:UInt8(tid)
+			f:Vector(tid)
 		else
 			GLib.Error("cannot write value of type '" .. type(v) .. "'!")
 		end
@@ -1880,7 +1815,7 @@ writetable = function(t, f, d)
 	end
 
 	if #kvps > 0 then
-		f:WriteByte(TABLE_TYPE_SPLIT)
+		f:UInt8(TABLE_TYPE_SPLIT)
 
 		--print(" - wrote splitter")
 
@@ -1892,7 +1827,7 @@ writetable = function(t, f, d)
 		end
 	end
 
-	f:WriteByte(TABLE_TYPE_END)
+	f:UInt8(TABLE_TYPE_END)
 
 	--print(" - wrote end")
 end
@@ -1901,17 +1836,16 @@ readvar = function(tid, f, d)
 	if TABLE_TYPE_NIL == tid then
 		return nil
 	elseif TABLE_TYPE_NUMBER == tid then
-		return f:ReadDouble()
+		return f:Double()
 	elseif TABLE_TYPE_STRING == tid then
-		local len = f:ReadLong()
-		local s = f:Read(len)
+		local s = f:StringN32()
 
 		d[specialKeyForTheReferenceCounter] = d[specialKeyForTheReferenceCounter] + 1
 		d[d[specialKeyForTheReferenceCounter]] = s
 
 		return s
 	elseif TABLE_TYPE_STRING_NETWORKED == tid then
-		return util.NetworkIDToString(f:ReadShort())
+		return util.NetworkIDToString(f:Int16())
 	elseif TABLE_TYPE_STRING_EMPTY == tid then
 		return ""
 	elseif TABLE_TYPE_BOOLEAN_TRUE == tid then
@@ -1921,22 +1855,22 @@ readvar = function(tid, f, d)
 	elseif TABLE_TYPE_TABLE == tid then
 		return readtable(f, d)
 	elseif TABLE_TYPE_TABLE_COLOR == tid then
-		local r = f:ReadByte()
-		local g = f:ReadByte()
-		local b = f:ReadByte()
-		local a = f:ReadByte()
+		local r = f:UInt8()
+		local g = f:UInt8()
+		local b = f:UInt8()
+		local a = f:UInt8()
 
 		return Color(r, g, b, a)
 	elseif TABLE_TYPE_ENTITY_SINGLE == tid then
-		return Entity(f:ReadByte())
+		return Entity(f:UInt8())
 	elseif TABLE_TYPE_ENTITY_DOUBLE == tid then
-		return Entity(f:ReadShort())
+		return Entity(f:Int16())
 	elseif TABLE_TYPE_ANGLE == tid then
-		return Angle(f:ReadFloat(), f:ReadFloat(), f:ReadFloat())
+		return Angle(f:Float(), f:Float(), f:Float())
 	elseif TABLE_TYPE_VECTOR == tid then
-		return Vector(f:ReadFloat(), f:ReadFloat(), f:ReadFloat())
+		return f:Vector()
 	elseif TABLE_TYPE_REFERENCE == tid then
-		return d[f:ReadShort()]
+		return d[f:UInt8()]
 	else
 		error("unknown type ID: " .. tid)
 	end
@@ -1953,7 +1887,7 @@ readtable = function(f, d)
 	--print("- reading table; refid: ", d[specialKeyForTheReferenceCounter])
 
 	repeat
-		tid = f:ReadByte()
+		tid = f:UInt8()
 
 		--print(" - read type: ", tid, "; known string: ", tostring(typemap[tid]))
 
@@ -1968,7 +1902,7 @@ readtable = function(f, d)
 		else
 			local key = readvar(tid, f, d)
 			--print(" - read key: ", tostring(key))
-			tid = f:ReadByte()
+			tid = f:UInt8()
 			--print(" - read tid for value: ", tid)
 			t[key] = readvar(tid, f, d)
 			--print(" - read value: ", tostring(t[key]))
@@ -1986,7 +1920,7 @@ function WritePacketIndex:Table(val)
 		error("bad argument #1: expected 'table', got '" .. type(val) .. "'.")
 	end
 
-	writetable(val, self.File, { [specialKeyForTheReferenceCounter] = -1 })
+	writetable(val, self.Buffer, { [specialKeyForTheReferenceCounter] = -1 })
 
 	return self
 end
@@ -1994,14 +1928,14 @@ end
 function ReadPacketIndex:Table()
 	_checkpck(self)
 
-	return readtable(self.File, { [specialKeyForTheReferenceCounter] = -1 })
+	return readtable(self.Buffer, { [specialKeyForTheReferenceCounter] = -1 })
 end
 
 
 function WritePacketIndex:Variable(val)
 	_checkpck(self)
 
-	writevar(val, self.File, { [specialKeyForTheReferenceCounter] = -1 })
+	writevar(val, self.Buffer, { [specialKeyForTheReferenceCounter] = -1 })
 
 	return self
 end
@@ -2009,9 +1943,9 @@ end
 function ReadPacketIndex:Variable()
 	_checkpck(self)
 
-	local tid = self.File:ReadByte()
+	local tid = self.Buffer:UInt8()
 
-	return readvar(tid, self.File, { [specialKeyForTheReferenceCounter] = -1 })
+	return readvar(tid, self.Buffer, { [specialKeyForTheReferenceCounter] = -1 })
 end
 
 
@@ -2280,7 +2214,7 @@ end
 
 
 
-vnet.versionString = "1.1.5"
-vnet.versionNumber = 1001005
+vnet.versionString = "1.1.6"
+vnet.versionNumber = 1001006
 
 return vnet
