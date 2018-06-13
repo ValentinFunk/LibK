@@ -228,6 +228,8 @@ function LibK.getDatabaseConnection( config, name )
 	end
 
 	function DB.ConnectToMySQL(host, username, password, database_name, database_port)
+		DB.CONNECTED_TO_MYSQL = true
+		
 		if not mysqloo then
 			KLogf( 1, "MySQL Error: MySQLOO modules aren't installed properly!" )
 			return
@@ -250,7 +252,6 @@ function LibK.getDatabaseConnection( config, name )
 
 		databaseObject.onConnected = function()
 			DB.Log( Format( "[LibK] Connected to %s(%s@%s:%s)", name, username, host, database_port ) )
-			DB.CONNECTED_TO_MYSQL = true
 			DB.cachedQueries = DB.cachedQueries or {}
 			if #DB.cachedQueries > 0 then
 				KLogf( 4, "[INFO] Connection to the database %s has been reestablished, running %i queued queries", name, #DB.cachedQueries )
