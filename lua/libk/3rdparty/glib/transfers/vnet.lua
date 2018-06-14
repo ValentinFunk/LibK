@@ -224,7 +224,7 @@ do
 			return prog, false
 		end
 
-		-- print("writing", os.date(), os.time(), SysTime(), pckPrint(pck))
+		--print("writing", os.date(), os.time(), SysTime(), pckPrint(pck))
 
 		if #pck.Data <= frac and pck.Completed then
 			WriteInt(TYPE_FRAG_WHOLE, 8)								--	Fragment type
@@ -1765,7 +1765,7 @@ writevar = function(v, f, d)
 			else
 				f:UInt8(tid)
 
-				writetable(v, f, d)
+				f:StringN32(LibK.von.serialize(v))
 			end
 		elseif TABLE_TYPE_NUMBER == tid then
 			f:UInt8(tid)
@@ -1787,48 +1787,11 @@ writevar = function(v, f, d)
 			f:Float(v.r)
 		elseif TABLE_TYPE_VECTOR == tid then
 			f:UInt8(tid)
-			f:Vector(tid)
+			f:Vector(v)
 		else
 			GLib.Error("cannot write value of type '" .. type(v) .. "'!")
 		end
 	end
-end
-
-writetable = function(t, f, d)
-	d[specialKeyForTheReferenceCounter] = d[specialKeyForTheReferenceCounter] + 1
-	d[t] = d[specialKeyForTheReferenceCounter]
-
-	local kvps, len = {}, #t
-
-	for k, v in pairs(t) do
-		if type(k) ~= "number" or k < 1 or k > len or (k % 1 ~= 0) then
-			kvps[#kvps+1] = k
-		end
-	end
-
-	--print("- got ", #kvps, " kvps and ", len, " indexes; refid: ", d[specialKeyForTheReferenceCounter])
-
-	for i = 1, len do
-		--print(" - writing index ", i)
-		writevar(t[i], f, d)
-	end
-
-	if #kvps > 0 then
-		f:UInt8(TABLE_TYPE_SPLIT)
-
-		--print(" - wrote splitter")
-
-		for i = 1, #kvps do
-			--print(" - writing key ", i, ": ", kvps[i])
-			writevar(kvps[i], f, d)
-			--print(" - writing value ", i, ": ", t[kvps[i]])
-			writevar(t[kvps[i]], f, d)
-		end
-	end
-
-	f:UInt8(TABLE_TYPE_END)
-
-	--print(" - wrote end")
 end
 
 readvar = function(tid, f, d)
@@ -1850,7 +1813,7 @@ readvar = function(tid, f, d)
 	elseif TABLE_TYPE_BOOLEAN_FALSE == tid then
 		return false
 	elseif TABLE_TYPE_TABLE == tid then
-		return readtable(f, d)
+		return LibK.von.deserialize(f:StringN32())
 	elseif TABLE_TYPE_TABLE_COLOR == tid then
 		local r = f:UInt8()
 		local g = f:UInt8()
@@ -1873,43 +1836,6 @@ readvar = function(tid, f, d)
 	end
 end
 
-readtable = function(f, d)
-	local t, i = {}, 0
-
-	d[specialKeyForTheReferenceCounter] = d[specialKeyForTheReferenceCounter] + 1
-	d[d[specialKeyForTheReferenceCounter]] = t
-
-	local tid
-
-	--print("- reading table; refid: ", d[specialKeyForTheReferenceCounter])
-
-	repeat
-		tid = f:UInt8()
-
-		--print(" - read type: ", tid, "; known string: ", tostring(typemap[tid]))
-
-		if TABLE_TYPE_SPLIT == tid then
-			i = -1
-		elseif TABLE_TYPE_END == tid then
-			break
-		elseif i > -1 then
-			i = i + 1
-			--print(" - reading for index: ", i)
-			t[i] = readvar(tid, f, d)
-		else
-			local key = readvar(tid, f, d)
-			--print(" - read key: ", tostring(key))
-			tid = f:UInt8()
-			--print(" - read tid for value: ", tid)
-			t[key] = readvar(tid, f, d)
-			--print(" - read value: ", tostring(t[key]))
-		end
-	until tid == TABLE_TYPE_END
-
-	return t
-end
-
-
 function WritePacketIndex:Table(val)
 	_checkpck(self)
 
@@ -1917,7 +1843,7 @@ function WritePacketIndex:Table(val)
 		error("bad argument #1: expected 'table', got '" .. type(val) .. "'.")
 	end
 
-	writetable(val, self.Buffer, { [specialKeyForTheReferenceCounter] = -1 })
+	self.Buffer:StringN32(LibK.von.serialize(val))
 
 	return self
 end
@@ -1925,7 +1851,7 @@ end
 function ReadPacketIndex:Table()
 	_checkpck(self)
 
-	return readtable(self.Buffer, { [specialKeyForTheReferenceCounter] = -1 })
+	return LibK.von.deserialize(self.Buffer:StringN32())
 end
 
 

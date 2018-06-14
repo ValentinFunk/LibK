@@ -123,12 +123,15 @@ function BaseView:controllerAction( strAction, ... )
 	if not self.class.static.controller then
 		error( "View " .. self.class.name .. " has no associated controller!" )
 	end
-	net.Start( "ControllerAction" )
-		net.WriteString( self.class.static.controller )
-		net.WriteString( strAction )
-		net.WriteString( self.class.name )
-		net.WriteTable( {...} )
-	net.SendToServer( )
+
+	local packet = vnet.CreatePacket( "ControllerAction" )
+		packet:String( self.class.static.controller )
+		packet:String( strAction )
+		packet:String( self.class.name )
+		packet:Table( {...} )
+	packet:AddServer( )
+	packet:Send( )
+	dp("send ", strAction)
 end
 
 function BaseView:controllerTransaction( strAction, ... )
@@ -137,14 +140,15 @@ function BaseView:controllerTransaction( strAction, ... )
 	local def = Deferred( )
 	local transactionId = table.insert( self.transactions, def )
 	
-	net.Start( "LibK_Transaction" )
-		net.WriteUInt( transactionId, 16 )
-		net.WriteString( self.class.static.controller )
-		net.WriteString( strAction )
-		net.WriteString( self.class.name )
-		net.WriteTable( { ... } )
-	net.SendToServer( )
-
+	local packet = vnet.CreatePacket( "LibK_Transaction" )
+		packet:Int( transactionId )
+		packet:String( self.class.static.controller )
+		packet:String( strAction )
+		packet:String( self.class.name )
+		packet:Table( { ... } )
+	packet:AddServer( )
+	packet:Send( )
+	dp("send ", strAction)
 	
 	return def:Promise( )
 end

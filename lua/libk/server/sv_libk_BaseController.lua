@@ -32,21 +32,24 @@ function BaseController:startView( viewName, func, target,  ... )
 		return
 	end
 	
-	local packet = vnet.CreatePacket("LibK_StartView")
-	packet:String(viewName)
-	packet:String(func)
-	packet:Table(netTable)
-	packet:AddTargets(target)
-	packet:Send()
+	local packet = vnet.CreatePacket( "LibK_StartView" )
+	packet:String( viewName )
+	packet:String( func )
+	packet:Table( netTable )
+	packet:AddTargets( target )
+	packet:Send( )
 end
 
 util.AddNetworkString( "LibK_Transaction" )
-net.Receive( "LibK_Transaction", function( len, ply )
-	local transactionId = net.ReadUInt( 16 )
-	local controller = net.ReadString( )
-	local action = net.ReadString( )
-	local view = net.ReadString( )
-	local args = net.ReadTable( )
+vnet.Watch( "LibK_Transaction", function( packet )
+	local len = packet.Size
+	local ply = packet.Source
+
+	local transactionId = packet:Int( )
+	local controller = packet:String( )
+	local action = packet:String( )
+	local view = packet:String( )
+	local args = packet:Table( )
 	
 	local controllerClass = getClass(controller)
 	if not controllerClass then 
@@ -59,7 +62,7 @@ net.Receive( "LibK_Transaction", function( len, ply )
 	for k, v in pairs( args ) do
 		table.insert( argStrs, tostring( v ) )
 	end
-	KLogf( 4, "%s@%s -> %s:%s( %s ) | Transaction %i len %i", ply:Nick( ), view, controller, action, table.concat( argStrs, " ," ), transactionId, len )
+	KLogf( 4, "%s@%s -> %s:%s( %s ) | Transaction %i len %i, Compressed: %s", ply:Nick( ), view, controller, action, table.concat( argStrs, " ," ), transactionId, len, packet.Compressed )
 	
 	instance:canDoAction( ply, action )
 	:Then( function( )
@@ -104,7 +107,7 @@ net.Receive( "LibK_Transaction", function( len, ply )
 	:Fail( function( ... )
 		instance:startView( view, "transactionCompleted", ply, transactionId, false, ... )
 	end )
-end )
+end, { vnet.OPTION_WATCH_OVERRIDE } )
 
 --Override for access controll
 --returns a promise, resolved if user can do it, rejected with error if he cant
@@ -115,11 +118,14 @@ function BaseController:canDoAction( ply, action )
 end
 
 util.AddNetworkString( "ControllerAction" )
-net.Receive( "ControllerAction", function( len, ply )
-	local controller = net.ReadString( )
-	local action = net.ReadString( )
-	local view = net.ReadString( )
-	local args = net.ReadTable( )
+vnet.Watch( "ControllerAction", function( packet )
+	local ply = packet.Source
+	local len = packet.Size
+
+	local controller = packet:String( )
+	local action = packet:String( )
+	local view = packet:String( )
+	local args = packet:Table( )
 	
 	local controllerClass = getClass(controller)
 	if not controllerClass then 
@@ -151,4 +157,4 @@ net.Receive( "ControllerAction", function( len, ply )
 	:Fail( function( errid, err )
 		instance:startView( view, "displayError", ply, tostring(errid) .. ": " .. tostring(err), "Server Error" )
 	end )
-end )
+end, { vnet.OPTION_WATCH_OVERRIDE } )
