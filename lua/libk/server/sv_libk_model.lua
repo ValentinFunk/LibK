@@ -579,7 +579,7 @@ function DatabaseModel.generateSQLForType( fieldtype, options )
 		id = "INTEGER PRIMARY KEY AUTOINCREMENT",
 		string = "VARCHAR(255) NOT NULL",
 		int = "INT(11) NOT NULL",
-        intUnsigned = "INT(11) UNSIGNED NOT NULL",
+        intUnsigned = "INT(11) NOT NULL",
 		optKey = "INT(11)",
 		table = "MEDIUMTEXT",
 		bool = "BOOLEAN",
@@ -594,10 +594,11 @@ function DatabaseModel.generateSQLForType( fieldtype, options )
 		json = "TEXT NULL",
 	}
 
-	--No AUTO_INCREMENT in SQLite
 	if options.myql then
+	    --No AUTO_INCREMENT, UNSIGNED in SQLite
 		map.id = "INT(11) NOT NULL AUTO_INCREMENT"
-	end
+        map.intUnsigned = "INT(11) UNSIGNED NOT NULL"
+    end
 
 	if not map[fieldtype] then
 		error( "Invalid fieldtype " .. fieldtype .. "given!" )
