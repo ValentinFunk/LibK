@@ -1726,7 +1726,7 @@ local typemap = {
 	[TABLE_TYPE_REFERENCE] = "REFERENCE",
 }
 
-local writevar, writetable, readvar, readtable
+local writevar, readvar
 
 writevar = function(v, f, d)
 	if v ~= nil and d[v] then
