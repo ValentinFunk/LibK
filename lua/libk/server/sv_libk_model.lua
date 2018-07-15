@@ -124,7 +124,7 @@ function DatabaseModel:included( class )
 
 	function class.static.getCreateTableStatement( mysql )
 		local model = class.static.model
-	
+
 		local query = string.format( "CREATE TABLE IF NOT EXISTS `%s` (", model.tableName )
 		local fieldsPart = {}
 		for fieldname, fieldtype in pairs( model.fields ) do
@@ -139,9 +139,9 @@ function DatabaseModel:included( class )
 			-- In SQLite this is done as part of the column SQL for the id type
 			table.insert( fieldsPart, "PRIMARY KEY (`" .. ( model.overrideKey or "id" ) .. "` ASC)" )
 		end
-	
+
 		local fieldsPart = table.concat( fieldsPart, ", " )
-	
+
 		local modelsRequired = {}
 		local fkParts = {""}
 		for name, info in pairs( model.belongsTo or {} ) do
@@ -151,19 +151,19 @@ function DatabaseModel:included( class )
 			elseif model.fields[info.foreignKey] == "optKey" then
 				onDelete = "SET NULL"
 			end
-	
+
 			local onUpdate = "RESTRICT"
 			if info.onUpdate then
 				onUpdate = info.onUpdate
 			elseif model.fields[info.foreignKey] == "optKey" then
 				onUpdate = "SET NULL"
 			end
-	
+
 			local foreignClass = getClass( info.class )
 			if not foreignClass then
 				error( "Invalid class " .. info.class .. " for model " .. class.name .. ", constraint " .. name )
 			end
-	
+
 			table.insert( fkParts, Format( "CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`) ON DELETE %s ON UPDATE %s",
 				"FK_" .. util.CRC( class.name .. "_" .. name .. "_" .. info.class ),
 				info.foreignKey,
@@ -172,14 +172,14 @@ function DatabaseModel:included( class )
 				onDelete,
 				onUpdate
 			) )
-	
+
 			--Wait for parent models to load before creating the table unless it's a self-reference
 			if info.class != class.name then
 				table.insert( modelsRequired, info.class )
 			end
 		end
 		fkParts = table.concat( fkParts, ", " )
-	
+
 		local sqlStr = query .. fieldsPart  .. fkParts .. ")"
 		if mysql then
 			sqlStr = sqlStr .. "  ENGINE=InnoDB"
@@ -383,7 +383,7 @@ function DatabaseModel:included( class )
 
 					--Check for override class
 					for fieldname, fieldtype in pairs( targetClassModel.fields ) do
-						local className = row[relName .. "." .. fieldname] 
+						local className = row[relName .. "." .. fieldname]
 						if not className then
 							continue
 						end
@@ -396,7 +396,7 @@ function DatabaseModel:included( class )
 							constructor = getClass( className )
 							if not constructor then
 								PrintTable( row )
-								hook.Run( "LibK_InvalidClassError", class, className, row, relName )								
+								hook.Run( "LibK_InvalidClassError", class, className, row, relName )
 								error( "Invalid class " .. className .. " for " .. class.name .. " id " .. row[relName .. ".id"] )
 							end
 						end
@@ -579,6 +579,7 @@ function DatabaseModel.generateSQLForType( fieldtype, options )
 		id = "INTEGER PRIMARY KEY AUTOINCREMENT",
 		string = "VARCHAR(255) NOT NULL",
 		int = "INT(11) NOT NULL",
+        intUnsigned = "INT(11) UNSIGNED NOT NULL",
 		optKey = "INT(11)",
 		table = "MEDIUMTEXT",
 		bool = "BOOLEAN",
@@ -629,7 +630,7 @@ function DatabaseModel:loadFieldFromDb( fieldname, data )
 		self[fieldname] = data
 	elseif fieldtype == "bool" then
 		self[fieldname] = not ( data == 0 or data == "0" )
-	elseif fieldtype == "int" then
+	elseif fieldtype == "int" or fieldtype == "intUnsigned" then
 		self[fieldname] = tonumber( data )
 	elseif fieldtype == "string" then
 		self[fieldname] = tostring( data )
@@ -662,6 +663,12 @@ function DatabaseModel.prepareForSQL( db, fieldtype, value )
 	elseif fieldtype == "int" then
 		local numVal = tonumber( value )
 		if not numVal then
+			error( "Invalid number value " .. value .. " passed to database" )
+		end
+		return escape( db, numVal )
+    elseif fieldtype == "intUnsigned" then
+        local numVal = tonumber( value )
+		if not numVal or numVal < 0 then
 			error( "Invalid number value " .. value .. " passed to database" )
 		end
 		return escape( db, numVal )
@@ -837,11 +844,11 @@ function DatabaseModel:save( )
 		end
 	end):Then(function()
 		if self.id then
-			return DATABASES[db].DoQuery(query):Then(function() 
-				return self 
+			return DATABASES[db].DoQuery(query):Then(function()
+				return self
 			end)
 		else
-			return DATABASES[db].DoQuery(query):Then( function(data, lastInsertId) 
+			return DATABASES[db].DoQuery(query):Then( function(data, lastInsertId)
 				self.id = tonumber( lastInsertId )
 				return self
 			end )
