@@ -227,6 +227,15 @@ end
 
 -- arrays
 
+function Underscore.funcs.find(array, fn)
+    for _, v in ipairs(array) do
+        local matches = fn(v)
+        if matches then
+            return v
+        end
+    end
+end
+
 function Underscore.funcs.first(array, n)
 	if n == nil then
 		return array[1]
