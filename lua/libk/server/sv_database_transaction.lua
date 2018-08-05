@@ -4,6 +4,7 @@ LibK.TransactionMysql = TransactionMysql
 function TransactionMysql:initialize(db)
     self.waitUntilConnected = db.ConnectionPromise
     self.db = db.MySQLDB
+    self.wrappedDb = db
 end
 
 function TransactionMysql:begin()
@@ -18,14 +19,18 @@ end
 
 function TransactionMysql:add(str)
     local def = Deferred()
-    return self.waitUntilConnected:Then(function() 
+    return self.waitUntilConnected:Then(function()
         if not self.transaction then
             LibK.GLib.Error("TransactionMysql: Cannot add query, begin() was not called")
         end
         local query = self.db:query(str)
-	    self.transaction:addQuery(query)
+        self.transaction:addQuery(query)
         return query
     end)
+end
+
+function TransactionMysql:rollback()
+    return self.wrappedDb.DoQuery( "ROLLBACK" )
 end
 
 function TransactionMysql:commit()
@@ -34,7 +39,7 @@ function TransactionMysql:commit()
         function self.transaction:onSuccess()
             transactionDef:Resolve()
         end
-        function self.transaction:onError(err) 
+        function self.transaction:onError(err)
             transactionDef:Reject(err or "aborted")
         end
 
@@ -46,10 +51,10 @@ end
 
 ---
 
-local TransactionSqlite = class('LibK.TransactionSqlite')
+local TransactionSqlite = class("LibK.TransactionSqlite")
 LibK.TransactionSqlite = TransactionSqlite
 
-function TransactionSqlite:initialize(db) 
+function TransactionSqlite:initialize(db)
     self.db = db
 end
 
@@ -88,4 +93,8 @@ function TransactionSqlite:commit()
     end
 
     return self.deferred:Promise()
+end
+
+function TransactionSqlite:rollback()
+    self.db.Query( "ROLLBACK" )
 end
