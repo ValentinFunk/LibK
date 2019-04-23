@@ -5,9 +5,9 @@ local function isolatedInclude( filePath )
 	local path = virtualLua .. "/" .. filePath
 	local alternativePath = virtualLua .. "/" .. virtualMain .. "/" .. filePath
 	local result
-	if _file.Exists( alternativePath, "LUA" ) then
-		result = CompileFile( alternativePath )
-	elseif _file.Exists( path, "LUA" ) then
+	if _file.Exists( path, "LUA" ) then
+		result = CompileFile( path )
+	elseif _file.Exists( alternativePath, "LUA" ) then
 		if table.HasValue( _filesIncluded, filePath ) then
 			KLogf( 5, "  -> SKIPPED: " .. filePath )
 			return
