@@ -12,7 +12,7 @@ local function isolatedInclude( filePath )
 			KLogf( 5, "  -> SKIPPED: " .. filePath )
 			return
 		end
-		result = CompileFile( path )
+		result = CompileFile( alternativePath )
 	else
 		ErrorNoHalt( "Couldn't include file " .. path .. " -> " ..  alternativePath .. "\n" )
 		return
