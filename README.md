@@ -134,7 +134,7 @@ LibK.SetupDatabase( "YourAddon", YourAddon )
 ```
 
 The database will connect using the LibK settings (MySQL or SQLite) and initialize all models (create tables etc.)
-When the datbase has connected the function YourAddon.onDatabaseConnected will be called if it exists.
+When the database has connected the function YourAddon.onDatabaseConnected will be called if it exists.
 
 ### Models
 The main feature of LibK are models, these allow backend independent usage of databases.
