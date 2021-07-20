@@ -17,7 +17,12 @@ function PermissionInterface.query( ply, access )
 		return ply:IsAllowed( access )
 	end
 
-	KLogf(4, "[KReport] No compatible admin mod detected. ULX, Evolve and Exsto are supported- Defaulting." )
+	--SAM
+	if sam then
+		return ply:HasPermission( access )
+	end
+
+	KLogf(4, "[KReport] No compatible admin mod detected. ULX, Evolve, Exsto and SAM are supported- Defaulting." )
 
 	if ply:IsSuperAdmin() then
 		return true
@@ -67,6 +72,12 @@ function PermissionInterface.getRanks( )
 			table.insert( ranks, { internalName = internalName, title = rankInfo.name } )
 		end
 		return ranks
+	end
+
+	if sam then
+		for internalName, rankInfo in pairs(sam.ranks.get_ranks()) do
+			table.insert( ranks, { internalName = internalName, title = internalName } )
+		end
 	end
 
 	return ranks

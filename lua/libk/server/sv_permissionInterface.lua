@@ -3,6 +3,8 @@ function PermissionInterface.banPlayer( ply, time, reason, admin )
 	if exsto then
 	elseif ulx then
 		ulx.ban( admin, ply, time, reason )
+	elseif sam then
+		sam.player.ban( ply, time, reason, IsValid(admin) and admin:SteamID() )
 	end
 end
 
@@ -10,6 +12,8 @@ function PermissionInterface.banId( steam, time, reason, admin )
 	if exsto then
 	elseif ulx then
 		ulx.banid( admin, steam, time, reason )
+	elseif sam then
+		sam.player.ban_id( ply, time, reason, IsValid(admin) and admin:SteamID() )
 	end
 end
 
@@ -19,12 +23,16 @@ function PermissionInterface.kickPlayer( ply, reason, admin )
 		exsto.RunCommand( admin, "kick", { reason, ply:SteamID( ) } )
 	elseif ulx then
 		ulx.kick( admin, ply, reason )
+	else
+		ply:Kick(reason)
 	end
 end
 
 function PermissionInterface.slayPlayer( ply, admin )
 	if ulx then
 		ulx.slay( admin, { ply } )
+	elseif sam then
+		RunConsoleCommand( "sam", "slay", "#" .. ply:EntIndex() )
 	end
 end
 
