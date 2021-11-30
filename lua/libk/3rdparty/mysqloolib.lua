@@ -6,7 +6,6 @@ mysqloolib = {}
 	mysqloolib.ConvertDatabase(database)
 		Returns: the modified database
 		Modifies an existing database to make use of the extended functionality of this library
-		
 
 	Query callbacks are of this structure:
 	function callback([additionalArgs], query, status, dataOrError) end
@@ -83,10 +82,13 @@ mysqloolib = {}
 ]==]
 
 local db = {}
-local dbMetatable = {__index = db}
+local baseMeta = FindMetaTable("MySQLOO Database") or {} -- this ensures backwards compatibility to <=9.6
+local dbMetatable = {__index = function(tbl, key)
+	return (db[key] or baseMeta[key])
+end}
 
-//This converts an already existing database instance to be able to make use
-//of the easier functionality provided by mysqloo.CreateDatabase
+--This converts an already existing database instance to be able to make use
+--of the easier functionality provided by mysqloo.CreateDatabase
 function mysqloolib.ConvertDatabase(database)
 	return setmetatable(database, dbMetatable)
 end
@@ -138,8 +140,8 @@ local function setPreparedQueryArguments(query, values)
 		["number"] = function(query, index, value) query:setNumber(index, value) end,
 		["boolean"] = function(query, index, value) query:setBoolean(index, value) end,
 	}
-	//This has to be pairs instead of ipairs
-	//because nil is allowed as value
+	--This has to be pairs instead of ipairs
+	--because nil is allowed as value
 	for k, v in pairs(values) do
 		local varType = type(v)
 		if (typeFunctions[varType]) then
@@ -160,15 +162,19 @@ function db:PrepareQuery(str, values, callback, ...)
 end
 
 local transaction = {}
-local transactionMT = {__index = transaction}
+local baseTransactionMeta = FindMetaTable("MySQLOO Transaction") or {} -- this ensures backwards compatibility to <=9.6
+local transactionMT = {__index = function(tbl, key)
+	return (transaction[key] or baseTransactionMeta[key])
+end}
 
 function transaction:Prepare(str, values)
-	//TODO: Cache queries
+	--TODO: Cache queries
 	local preparedQuery = self._db:prepare(str)
 	setPreparedQueryArguments(preparedQuery, values)
 	self:addQuery(preparedQuery)
 	return preparedQuery
 end
+																	
 function transaction:Query(str)
 	local query = self._db:query(str)
 	self:addQuery(query)
