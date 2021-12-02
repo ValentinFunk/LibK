@@ -10,7 +10,7 @@ function LibK.SetBlocking( bShouldBlock )
 	LibK.databaseShouldBlock = bShouldBlock
 end
 
-hook.Add( "LibK_DatabaseConnectionFailed", function ( DB, name, msg )
+hook.Add( "LibK_DatabaseConnectionFailed", "LibKHook", function ( DB, name, msg )
 	DB.ConnectionPromise:Reject( tostring( msg ) )
 end )
 

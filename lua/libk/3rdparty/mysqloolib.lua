@@ -82,9 +82,19 @@ mysqloolib = {}
 ]==]
 
 local db = {}
-local baseMeta = FindMetaTable("MySQLOO Database") or {} -- this ensures backwards compatibility to <=9.6
+local baseMetaInitialized = false
+local baseMeta = {}
+local function getBaseMeta()
+	if (!baseMetaInitialized) then
+		-- this ensures backwards compatibility to <=9.6
+		baseMeta = FindMetaTable("MySQLOO Database") or {}
+		baseMetaInitialized = true
+	end
+	return baseMeta
+end
+
 local dbMetatable = {__index = function(tbl, key)
-	return (db[key] or baseMeta[key])
+	return db[key] or getBaseMeta()[key]
 end}
 
 --This converts an already existing database instance to be able to make use
@@ -162,9 +172,19 @@ function db:PrepareQuery(str, values, callback, ...)
 end
 
 local transaction = {}
-local baseTransactionMeta = FindMetaTable("MySQLOO Transaction") or {} -- this ensures backwards compatibility to <=9.6
+local baseTransactionMetaInitialized = false
+local baseTransactionMeta = {}
+local function getBaseTransactionMeta()
+	if (!baseTransactionMetaInitialized) then
+		-- this ensures backwards compatibility to <=9.6
+		baseTransactionMeta = FindMetaTable("MySQLOO Transaction") or {}
+		baseTransactionMetaInitialized = true
+	end
+	return baseTransactionMeta
+end
+
 local transactionMT = {__index = function(tbl, key)
-	return (transaction[key] or baseTransactionMeta[key])
+	return transaction[key] or getBaseTransactionMeta()[key]
 end}
 
 function transaction:Prepare(str, values)
@@ -174,7 +194,7 @@ function transaction:Prepare(str, values)
 	self:addQuery(preparedQuery)
 	return preparedQuery
 end
-																	
+
 function transaction:Query(str)
 	local query = self._db:query(str)
 	self:addQuery(query)
