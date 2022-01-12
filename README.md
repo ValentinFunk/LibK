@@ -15,7 +15,7 @@ LibK provides a few tools for database interaction:
 
 ## Networking
 - Clients can start server transactions that are wrapped as a promise
-- Objects (i.e. clas instances) can be sent from server to client
+- Objects (i.e. class instances) can be sent from server to client
 
 ## Addon Loader
 - Easy loading by filename
