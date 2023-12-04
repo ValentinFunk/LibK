@@ -312,7 +312,7 @@ function Underscore.funcs.groupBy(array, fn)
 		result[key] = result[key] or {}
 		table.insert(result[key], ele)
 	end
-	return all
+	return result
 end
 
 -- objects
